@@ -15,6 +15,15 @@
 
 ---
 
+## Support the Project
+
+Support the development of **DB Mover** by holding **$DBM** on Bags!
+
+**Link:** [$DBM](https://bags.fm/D3dwm8wTN7f4qvWSqavXL1FgEdm7aN2W8ZYVS8iKBAGS)  
+**CA:** `D3dwm8wTN7f4qvWSqavXL1FgEdm7aN2W8ZYVS8iKBAGS`
+
+---
+
 ## 🚀 Overview
 
 **DB Mover** is an open-source tool designed to simplify the complex process of database migration. It eliminates the need for complex CLI commands, connection strings wrestling, and manual dump file management.
@@ -98,3 +107,7 @@ Under the following terms:
 - **NonCommercial** — You may not use the material for commercial purposes (e.g., selling it as a SaaS product).
 
 See the [LICENSE](LICENSE) file for the full text.
+
+---
+
+Disclaimer: I am the designated royalty recipient for the $DBM token via Bags.fm. Please note: I am not the creator or developer of this token, nor do I manage its liquidity or roadmap. This address is provided for community transparency only.
