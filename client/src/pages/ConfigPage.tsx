@@ -30,7 +30,7 @@ export function ConfigPage() {
           sourceUri: config.sourceUri,
           targetUri: config.targetUri,
           dbType: dbType,
-        })
+        }),
       );
 
       toast.success("Migration started", {
@@ -55,7 +55,7 @@ export function ConfigPage() {
         },
         {
           responseType: "blob",
-        }
+        },
       );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -85,6 +85,7 @@ export function ConfigPage() {
         className="flex items-center justify-center min-h-[60vh]"
       >
         <DatabaseConfigForm
+          key={dbType}
           dbType={dbType || "mongodb"}
           onStartCopy={handleStartCopy}
           onStartDownload={handleStartDownload}

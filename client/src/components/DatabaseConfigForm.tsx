@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CardContent,
   CardDescription,
@@ -55,18 +55,78 @@ const validateUri = (uri: string, dbType: string): boolean => {
   return pattern ? pattern.test(uri) : false;
 };
 
+const DRAFT_KEY = (dbType: string) => `db_mover_draft_${dbType}`;
+
+const loadDraft = (dbType: string) => {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY(dbType));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveDraft = (
+  dbType: string,
+  data: { mode: string; sourceUri: string; targetUri: string },
+) => {
+  try {
+    sessionStorage.setItem(DRAFT_KEY(dbType), JSON.stringify(data));
+  } catch {
+    // sessionStorage not available (e.g. private browsing with storage blocked)
+  }
+};
+
+const clearDraft = (dbType: string) => {
+  try {
+    sessionStorage.removeItem(DRAFT_KEY(dbType));
+  } catch {
+    // noop
+  }
+};
+
 export function DatabaseConfigForm({
   dbType,
   onStartCopy,
   onStartDownload,
 }: DatabaseConfigFormProps) {
-  const [mode, setMode] = useState<"copy" | "download">("copy");
-  const [sourceUri, setSourceUri] = useState("");
-  const [targetUri, setTargetUri] = useState("");
+  const [mode, setMode] = useState<"copy" | "download">(() => {
+    const d = loadDraft(dbType);
+    return d?.mode ?? "copy";
+  });
+  const [sourceUri, setSourceUri] = useState(() => {
+    const d = loadDraft(dbType);
+    return d?.sourceUri ?? "";
+  });
+  const [targetUri, setTargetUri] = useState(() => {
+    const d = loadDraft(dbType);
+    return d?.targetUri ?? "";
+  });
   const [loading, setLoading] = useState(false);
   const [showSource, setShowSource] = useState(false);
   const [showTarget, setShowTarget] = useState(false);
   const [showTips, setShowTips] = useState(false);
+  const [hasDraft, setHasDraft] = useState(() => {
+    const d = loadDraft(dbType);
+    return !!(d?.sourceUri || d?.targetUri);
+  });
+
+  // Sync state → sessionStorage whenever any field changes
+  useEffect(() => {
+    // Only save if there is actual data to preserve
+    if (sourceUri || targetUri) {
+      saveDraft(dbType, { mode, sourceUri, targetUri });
+      setHasDraft(true);
+    }
+  }, [dbType, mode, sourceUri, targetUri]);
+
+  const handleClearDraft = () => {
+    setSourceUri("");
+    setTargetUri("");
+    setMode("copy");
+    clearDraft(dbType);
+    setHasDraft(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,11 +153,12 @@ export function DatabaseConfigForm({
       } else {
         await onStartDownload({ sourceUri });
       }
+      // Draft is intentionally kept so if the user navigates back
+      // (e.g. migration failed) they don't have to re-enter credentials.
+      // They can clear it manually via the "Clear saved" button.
     } catch (err) {
+      // Parent component (ConfigPage) handles the toast for execution errors
       console.error(err);
-      toast.error("Execution Error", {
-        description: "Failed to initialize the operation.",
-      });
     } finally {
       setLoading(false);
     }
@@ -128,11 +189,25 @@ export function DatabaseConfigForm({
       <CardContent className="p-8 pt-6 space-y-8">
         <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-4 flex gap-3 text-indigo-200/80 text-sm backdrop-blur-sm">
           <AlertCircle className="h-5 w-5 shrink-0 text-indigo-400" />
-          <p>Credentials are processed securely and never saved.</p>
+          <div className="flex-1 flex items-center justify-between gap-2">
+            <p>
+              Credentials are stored in your session only and cleared on tab
+              close.
+            </p>
+            {hasDraft && (
+              <button
+                type="button"
+                onClick={handleClearDraft}
+                className="shrink-0 text-xs font-medium text-indigo-400/70 hover:text-indigo-300 underline underline-offset-2 transition-colors"
+              >
+                Clear saved
+              </button>
+            )}
+          </div>
         </div>
 
         <Tabs
-          defaultValue="copy"
+          value={mode}
           onValueChange={(v) => setMode(v as any)}
           className="space-y-8"
         >
@@ -153,11 +228,15 @@ export function DatabaseConfigForm({
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-3">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+              <Label
+                htmlFor="source-uri"
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70"
+              >
                 Source Database
               </Label>
               <div className="relative group">
                 <Input
+                  id="source-uri"
                   type={showSource ? "text" : "password"}
                   placeholder={getPlaceholder(dbType)}
                   value={sourceUri}
@@ -188,11 +267,15 @@ export function DatabaseConfigForm({
               className="m-0 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300"
             >
               <div className="space-y-3">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                <Label
+                  htmlFor="target-uri"
+                  className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70"
+                >
                   Target Database
                 </Label>
                 <div className="relative group">
                   <Input
+                    id="target-uri"
                     type={showTarget ? "text" : "password"}
                     placeholder={getPlaceholder(dbType)}
                     value={targetUri}
