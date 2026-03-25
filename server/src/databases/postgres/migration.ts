@@ -59,6 +59,87 @@ const createDatabaseIfNotExists = async (
   }
 };
 
+const quoteIdentifier = (value: string): string =>
+  `"${value.replace(/"/g, '""')}"`;
+
+const extractSequenceRegclass = (columnDefault: string): string | null => {
+  const match = columnDefault.match(/nextval\('([^']+)'::regclass\)/);
+  return match ? match[1] : null;
+};
+
+const ensureSequenceExists = async (
+  sourceClient: Client,
+  targetClient: Client,
+  sequenceRegclass: string,
+  jobId: string,
+  migratedSequences: Set<string>,
+  sequenceStates: Map<string, { lastValue: unknown; isCalled: boolean }>
+): Promise<void> => {
+  const sequenceDetails = await sourceClient.query(
+    `
+      SELECT
+        n.nspname AS schema_name,
+        c.relname AS sequence_name,
+        s.seqstart AS start_value,
+        s.seqincrement AS increment_by,
+        s.seqmin AS min_value,
+        s.seqmax AS max_value,
+        s.seqcache AS cache_size,
+        s.seqcycle AS cycle
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      JOIN pg_sequence s ON s.seqrelid = c.oid
+      WHERE c.oid = to_regclass($1)
+    `,
+    [sequenceRegclass]
+  );
+
+  if (sequenceDetails.rows.length === 0) {
+    addLog(
+      jobId,
+      `Warning: could not find sequence metadata for ${sequenceRegclass}`
+    );
+    return;
+  }
+
+  const sequence = sequenceDetails.rows[0];
+  const schemaName = sequence.schema_name as string;
+  const sequenceName = sequence.sequence_name as string;
+  const qualifiedIdentifier = `${quoteIdentifier(schemaName)}.${quoteIdentifier(sequenceName)}`;
+
+  if (!migratedSequences.has(qualifiedIdentifier)) {
+    await targetClient.query(
+      `CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(schemaName)}`
+    );
+
+    await targetClient.query(
+      `
+        CREATE SEQUENCE IF NOT EXISTS ${qualifiedIdentifier}
+        INCREMENT BY ${String(sequence.increment_by)}
+        MINVALUE ${String(sequence.min_value)}
+        MAXVALUE ${String(sequence.max_value)}
+        START WITH ${String(sequence.start_value)}
+        CACHE ${String(sequence.cache_size)}
+        ${sequence.cycle ? "CYCLE" : "NO CYCLE"}
+      `
+    );
+
+    addLog(jobId, `Ensured sequence exists: ${qualifiedIdentifier}`);
+    migratedSequences.add(qualifiedIdentifier);
+
+    const stateResult = await sourceClient.query(
+      `SELECT last_value, is_called FROM ${qualifiedIdentifier}`
+    );
+
+    if (stateResult.rows.length > 0) {
+      sequenceStates.set(qualifiedIdentifier, {
+        lastValue: stateResult.rows[0].last_value,
+        isCalled: Boolean(stateResult.rows[0].is_called),
+      });
+    }
+  }
+};
+
 export const runCopyMigration = async (
   jobId: string,
   sourceUri: string,
@@ -288,6 +369,17 @@ export const runCopyMigration = async (
     let totalRowsCopied = 0;
     const totalTables = tables.length;
     let tablesProcessed = 0;
+    const tableErrors: string[] = [];
+    const deferredForeignKeys: Array<{
+      tableName: string;
+      constraintName: string;
+      constraintDef: string;
+    }> = [];
+    const migratedSequences = new Set<string>();
+    const sequenceStates = new Map<
+      string,
+      { lastValue: unknown; isCalled: boolean }
+    >();
 
     // Migrate each table
     for (const tableName of tables) {
@@ -295,6 +387,7 @@ export const runCopyMigration = async (
 
       try {
         // Get column information using pg_catalog for better accuracy with custom types
+        const tableRegclass = `"${tableName.replace(/"/g, '""')}"`;
         const columnInfo = await sourceClient.query(
           `
           SELECT 
@@ -302,6 +395,7 @@ export const runCopyMigration = async (
             format_type(a.atttypid, a.atttypmod) AS full_type,
             a.attnotnull AS is_not_null,
             pg_get_expr(d.adbin, d.adrelid) AS column_default,
+            a.attidentity AS identity_type,
             t.typname AS udt_name,
             n.nspname AS udt_schema
           FROM pg_attribute a
@@ -313,18 +407,52 @@ export const runCopyMigration = async (
           AND NOT a.attisdropped
           ORDER BY a.attnum
         `,
-          [`"${tableName.replace(/"/g, '""')}"`]
+          [tableRegclass]
+        );
+
+        const constraintsInfo = await sourceClient.query(
+          `
+          SELECT
+            conname AS constraint_name,
+            contype AS constraint_type,
+            pg_get_constraintdef(oid, true) AS constraint_def
+          FROM pg_constraint
+          WHERE conrelid = $1::regclass
+          ORDER BY conname
+        `,
+          [tableRegclass]
         );
 
         // Drop table if exists on target (for clean migration)
         await targetClient.query(`DROP TABLE IF EXISTS "${tableName}" CASCADE`);
+
+        for (const col of columnInfo.rows) {
+          const columnDefault = col.column_default as string | null;
+          const identityType = col.identity_type as string;
+          if (!columnDefault || identityType) {
+            continue;
+          }
+
+          const sequenceRegclass = extractSequenceRegclass(columnDefault);
+          if (sequenceRegclass) {
+            await ensureSequenceExists(
+              sourceClient,
+              targetClient,
+              sequenceRegclass,
+              jobId,
+              migratedSequences,
+              sequenceStates
+            );
+          }
+        }
 
         // Build CREATE TABLE statement
         const columns = columnInfo.rows.map((col) => {
           const columnName = col.column_name;
           let typeDef = col.full_type;
           const isNotNull = col.is_not_null;
-          const columnDefault = col.column_default;
+          const columnDefault = col.column_default as string | null;
+          const identityType = col.identity_type as string;
 
           // Double quote the type name if it looks like a custom type (no parentheses, potentially mixed case)
           // format_type() usually returns mixed case types without quotes if they are in the search_path.
@@ -351,11 +479,17 @@ export const runCopyMigration = async (
 
           let colDef = `"${columnName}" ${typeDef}`;
 
+          if (identityType === "a") {
+            colDef += " GENERATED ALWAYS AS IDENTITY";
+          } else if (identityType === "d") {
+            colDef += " GENERATED BY DEFAULT AS IDENTITY";
+          }
+
           if (isNotNull) {
             colDef += " NOT NULL";
           }
 
-          if (columnDefault) {
+          if (columnDefault && !identityType) {
             colDef += ` DEFAULT ${columnDefault}`;
           }
 
@@ -438,12 +572,41 @@ export const runCopyMigration = async (
 
         addLog(jobId, `Copied ${batchRows} rows from table: ${tableName}`);
 
-        // Copy indexes (simplified - just log for now)
+        // Apply non-foreign-key constraints on the table.
+        for (const constraint of constraintsInfo.rows) {
+          const constraintName = constraint.constraint_name as string;
+          const constraintType = constraint.constraint_type as string;
+          const constraintDef = constraint.constraint_def as string;
+          const escapedConstraintName = quoteIdentifier(constraintName);
+
+          if (constraintType === "f") {
+            deferredForeignKeys.push({
+              tableName,
+              constraintName,
+              constraintDef,
+            });
+            continue;
+          }
+
+          await targetClient.query(
+            `ALTER TABLE "${tableName}" ADD CONSTRAINT ${escapedConstraintName} ${constraintDef}`
+          );
+        }
+
+        // Copy only non-constraint-backed indexes.
         const indexesResult = await sourceClient.query(
           `
-          SELECT indexname, indexdef 
-          FROM pg_indexes 
-          WHERE schemaname = 'public' AND tablename = $1
+          SELECT
+            idx.relname AS indexname,
+            pg_get_indexdef(i.indexrelid) AS indexdef
+          FROM pg_index i
+          JOIN pg_class tbl ON tbl.oid = i.indrelid
+          JOIN pg_namespace ns ON ns.oid = tbl.relnamespace
+          JOIN pg_class idx ON idx.oid = i.indexrelid
+          LEFT JOIN pg_constraint con ON con.conindid = i.indexrelid
+          WHERE ns.nspname = 'public'
+            AND tbl.relname = $1
+            AND con.oid IS NULL
         `,
           [tableName]
         );
@@ -451,11 +614,8 @@ export const runCopyMigration = async (
         if (indexesResult.rows.length > 0) {
           for (const idx of indexesResult.rows) {
             try {
-              // Skip primary key indexes as they're created with the table
-              if (!idx.indexdef.includes("PRIMARY KEY")) {
-                await targetClient.query(idx.indexdef);
-                addLog(jobId, `Created index: ${idx.indexname}`);
-              }
+              await targetClient.query(idx.indexdef);
+              addLog(jobId, `Created index: ${idx.indexname}`);
             } catch (err) {
               // Index might already exist or have issues, continue
               console.warn(`Failed to create index ${idx.indexname}:`, err);
@@ -478,8 +638,56 @@ export const runCopyMigration = async (
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         addLog(jobId, `Error processing table ${tableName}: ${errorMessage}`);
+        tableErrors.push(`${tableName}: ${errorMessage}`);
         // Continue with next table
       }
+    }
+
+    // Apply foreign keys only after all tables are present.
+    for (const fk of deferredForeignKeys) {
+      try {
+        await targetClient.query(
+          `ALTER TABLE "${fk.tableName}" ADD CONSTRAINT ${quoteIdentifier(
+            fk.constraintName
+          )} ${fk.constraintDef}`
+        );
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        addLog(
+          jobId,
+          `Error adding foreign key ${fk.constraintName} on ${fk.tableName}: ${errorMessage}`
+        );
+        tableErrors.push(
+          `${fk.tableName} (FK ${fk.constraintName}): ${errorMessage}`
+        );
+      }
+    }
+
+    // Restore sequence positions after data copy.
+    for (const [sequenceName, sequenceState] of sequenceStates.entries()) {
+      try {
+        await targetClient.query(`SELECT setval($1::regclass, $2, $3)`, [
+          sequenceName,
+          sequenceState.lastValue,
+          sequenceState.isCalled,
+        ]);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        addLog(
+          jobId,
+          `Warning: failed to update sequence value for ${sequenceName}: ${errorMessage}`
+        );
+      }
+    }
+
+    if (tableErrors.length > 0) {
+      throw new Error(
+        `PostgreSQL migration completed with ${tableErrors.length} table metadata/data errors: ${tableErrors.join(
+          " | "
+        )}`
+      );
     }
 
     addLog(jobId, "Migration completed successfully!");
