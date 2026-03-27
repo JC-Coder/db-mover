@@ -13,7 +13,11 @@ export function ConfigPage() {
   useEffect(() => {
     return () => {
       if (dbType) {
-        sessionStorage.removeItem(`db_mover_draft_${dbType}`);
+        try {
+          sessionStorage.removeItem(`db_mover_draft_${dbType}`);
+        } catch {
+          // Ignore storage access errors (e.g. when storage is blocked)
+        }
       }
     };
   }, [dbType]);

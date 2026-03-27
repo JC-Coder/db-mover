@@ -38,9 +38,12 @@ export function MigrationPage() {
       // Start new migration with same config
       const res = await api.post("/migrate/start", config);
       const newJobId = res.data.jobId;
-
-      // Store config for new job
-      sessionStorage.setItem(`migration_${newJobId}`, JSON.stringify(config));
+      try {
+        // Store config for new job
+        sessionStorage.setItem(`migration_${newJobId}`, JSON.stringify(config));
+      } catch (error) {
+        // Ignore storage access errors (e.g. when storage is blocked)
+      }
 
       // Navigate to new migration page
       navigate(`/migration/${newJobId}`);
@@ -87,12 +90,22 @@ export function MigrationPage() {
 
       // Clean up session storage when navigating away
       if (jobId) {
-        const storedConfig = sessionStorage.getItem(`migration_${jobId}`);
-        if (storedConfig) {
-          const { dbType: storedDbType } = JSON.parse(storedConfig);
-          sessionStorage.removeItem(`db_mover_draft_${storedDbType}`);
+        try {
+          const storedConfig = sessionStorage.getItem(`migration_${jobId}`);
+          if (storedConfig) {
+            const parsedConfig = JSON.parse(storedConfig);
+            const storedDbType =
+              typeof parsedConfig?.dbType === "string"
+                ? parsedConfig.dbType.trim()
+                : "";
+            if (storedDbType) {
+              sessionStorage.removeItem(`db_mover_draft_${storedDbType}`);
+            }
+          }
+          sessionStorage.removeItem(`migration_${jobId}`);
+        } catch (storageError) {
+          console.error("Error cleaning up migration storage", storageError);
         }
-        sessionStorage.removeItem(`migration_${jobId}`);
       }
     };
   }, [jobId]);
