@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { DatabaseConfigForm } from "@/components/DatabaseConfigForm";
 import api from "@/lib/api";
@@ -7,6 +8,19 @@ import { motion } from "framer-motion";
 export function ConfigPage() {
   const { dbType } = useParams<{ dbType: string }>();
   const navigate = useNavigate();
+
+  // Clear draft data when navigating away from the config page
+  useEffect(() => {
+    return () => {
+      if (dbType) {
+        try {
+          sessionStorage.removeItem(`db_mover_draft_${dbType}`);
+        } catch {
+          // Ignore storage access errors (e.g. when storage is blocked)
+        }
+      }
+    };
+  }, [dbType]);
 
   const handleStartCopy = async (config: {
     sourceUri: string;
@@ -23,7 +37,7 @@ export function ConfigPage() {
       const { jobId } = res.data;
 
       // Store migration config for retry functionality
-      localStorage.setItem(
+      sessionStorage.setItem(
         `migration_${jobId}`,
         JSON.stringify({
           type: "copy",
