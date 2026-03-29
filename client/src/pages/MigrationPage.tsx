@@ -4,6 +4,19 @@ import { MigrationTerminal } from "@/components/MigrationTerminal";
 import api from "@/lib/api";
 import { toast } from "sonner";
 
+const parseStoredMigrationConfig = (
+  raw: string,
+): Record<string, unknown> | null => {
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+};
+
 export function MigrationPage() {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
@@ -33,7 +46,15 @@ export function MigrationPage() {
         return;
       }
 
-      const config = JSON.parse(storedConfig);
+      const config = parseStoredMigrationConfig(storedConfig);
+      if (!config) {
+        sessionStorage.removeItem(`migration_${jobId}`);
+        toast.error("Retry failed", {
+          description:
+            "Stored migration configuration is invalid. Please start a new migration.",
+        });
+        return;
+      }
 
       // Start new migration with same config
       const res = await api.post("/migrate/start", config);
