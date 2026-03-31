@@ -55,6 +55,7 @@ app.post("/api/migrate/verify", async (c) => {
     postgres: /^postgres(ql)?:\/\//,
     mysql: /^mysql:\/\//,
     redis: /^rediss?:\/\//,
+    firebase: /^firebase?:\/\//,
   };
 
   const pattern = uriPatterns[dbType as DatabaseType];
@@ -165,7 +166,7 @@ app.get("/api/migrate/:jobId/status", async (c) => {
 
 app.post("/api/download", async (c) => {
   const body = await c.req.json();
-  const { sourceUri, dbType = "mongodb" } = body;
+  const { sourceUri, credent, type, dbType = "mongodb" } = body;
 
   if (!sourceUri) return c.json({ error: "Missing Source URI" }, 400);
 
@@ -195,7 +196,7 @@ app.post("/api/download", async (c) => {
     try {
       const job = createJob("download", dbType as string);
       const adapter = getDatabaseAdapter(dbType as DatabaseType);
-      await adapter.runDownload(job.id, sourceUri, writableStream);
+      await adapter.runDownload(job.id, sourceUri, writableStream, credent, type);
     } catch (e) {
       console.error("Download error:", e);
       // Destroy stream gracefully

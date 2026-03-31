@@ -1,9 +1,10 @@
 import { Writable } from "stream";
 
-export type DatabaseType = "mongodb" | "postgres" | "mysql" | "redis";
+export type DatabaseType = "mongodb" | "postgres" | "mysql" | "redis" | "firebase";
+
 
 export interface IDatabaseAdapter {
-  verifyConnection(uri: string): Promise<boolean>;
+  verifyConnection(uri: string, credent?: string, type?: string): Promise<boolean>;
   runCopyMigration(
     jobId: string,
     sourceUri: string,
@@ -12,6 +13,13 @@ export interface IDatabaseAdapter {
   runDownload(
     jobId: string,
     sourceUri: string,
-    stream: Writable
+    stream: Writable,
+  ): Promise<void>;
+  runDownload(
+    jobId: string,
+    sourceUri: string,
+    stream: Writable,
+    credent?: string,
+    type?: string,
   ): Promise<void>;
 }

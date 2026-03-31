@@ -3,12 +3,14 @@ import { mongoAdapter } from "./mongo";
 import { postgresAdapter } from "./postgres";
 import { mysqlAdapter } from "./mysql";
 import { redisAdapter } from "./redis";
+import { firebaseAdapter } from "./firebase";
 
 const adapters: Record<DatabaseType, IDatabaseAdapter> = {
   mongodb: mongoAdapter,
   postgres: postgresAdapter,
   mysql: mysqlAdapter,
   redis: redisAdapter,
+  firebase: firebaseAdapter
 };
 
 export const getDatabaseAdapter = (dbType: DatabaseType): IDatabaseAdapter => {

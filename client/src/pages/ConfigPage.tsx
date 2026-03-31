@@ -45,33 +45,39 @@ export function ConfigPage() {
     }
   };
 
-  const handleStartDownload = async (config: { sourceUri: string }) => {
-    const promise = async () => {
-      const response = await api.post(
-        "/download",
-        {
-          sourceUri: config.sourceUri,
-          dbType: dbType,
-        },
-        {
-          responseType: "blob",
-        },
-      );
+  const handleStartDownload = async (config: {
+		sourceUri: string;
+		credent?: any;
+		type?: string;
+  }) => {
+		const promise = async () => {
+			const response = await api.post(
+				'/download',
+				{
+					sourceUri: config.sourceUri,
+					credent: config.credent,
+					type: config.type,
+					dbType: dbType,
+				},
+				{
+					responseType: 'blob',
+				},
+			);
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `dump_${Date.now()}.zip`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    };
+			const url = window.URL.createObjectURL(new Blob([response.data]));
+			const link = document.createElement('a');
+			link.href = url;
+			link.setAttribute('download', `dump_${Date.now()}.zip`);
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+		};
 
-    toast.promise(promise(), {
-      loading: "Preparing download...",
-      success: "Download started!",
-      error: "Export failed.",
-    });
+		toast.promise(promise(), {
+			loading: 'Preparing download...',
+			success: 'Download started!',
+			error: 'Export failed.',
+		});
   };
 
   return (
