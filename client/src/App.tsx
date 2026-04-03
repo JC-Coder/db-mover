@@ -9,11 +9,12 @@ import { useState, useEffect } from "react";
 import { LandingPage } from "@/components/LandingPage";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import { ArrowLeft, Github } from "lucide-react";
+import { ArrowLeft, Github, BarChart3 } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { SelectPage } from "@/pages/SelectPage";
 import { ConfigPage } from "@/pages/ConfigPage";
 import { MigrationPage } from "@/pages/MigrationPage";
+import { StatsPage } from "@/pages/StatsPage";
 
 function App() {
   const navigate = useNavigate();
@@ -62,6 +63,13 @@ function App() {
           </Link>
 
           <div className="flex items-center gap-4">
+            <Link
+              to="/stats"
+              className="hidden sm:flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/5 hover:bg-indigo-500/20 hover:border-indigo-500/50 transition-all"
+            >
+              <BarChart3 className="h-4 w-4 text-white/70" />
+              <span className="text-xs font-bold text-white/70">Stats</span>
+            </Link>
             {stars !== null && (
               <a
                 href="https://github.com/JC-Coder/db-mover"
@@ -97,6 +105,7 @@ function App() {
             />
             <Route path="/select" element={<SelectPage />} />
             <Route path="/config/:dbType" element={<ConfigPage />} />
+            <Route path="/stats" element={<StatsPage />} />
             <Route path="/migration/:jobId" element={<MigrationPage />} />
           </Routes>
         </AnimatePresence>
