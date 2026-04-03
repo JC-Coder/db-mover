@@ -15,6 +15,7 @@ import { SelectPage } from "@/pages/SelectPage";
 import { ConfigPage } from "@/pages/ConfigPage";
 import { MigrationPage } from "@/pages/MigrationPage";
 import { StatsPage } from "@/pages/StatsPage";
+import { SimpleLandingPage } from "@/components/SimpleLandingPage";
 
 function App() {
   const navigate = useNavigate();
@@ -32,7 +33,8 @@ function App() {
     navigate(-1);
   };
 
-  const isLanding = location.pathname === "/";
+  const isLanding =
+    location.pathname === "/" || location.pathname === "/landing-simple";
 
   const [stars, setStars] = useState<number | null>(null);
 
@@ -63,6 +65,14 @@ function App() {
           </Link>
 
           <div className="flex items-center gap-4">
+            <Link
+              to="/landing-simple"
+              className="hidden sm:flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/5 hover:bg-[#C98A3D]/20 hover:border-[#C98A3D]/50 transition-all"
+            >
+              <span className="text-xs font-bold text-white/70">
+                Simple UI
+              </span>
+            </Link>
             <Link
               to="/stats"
               className="hidden sm:flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/5 hover:bg-indigo-500/20 hover:border-indigo-500/50 transition-all"
@@ -102,6 +112,10 @@ function App() {
             <Route
               path="/"
               element={<LandingPage onStart={() => navigate("/select")} />}
+            />
+            <Route
+              path="/landing-simple"
+              element={<SimpleLandingPage onStart={() => navigate("/select")} />}
             />
             <Route path="/select" element={<SelectPage />} />
             <Route path="/config/:dbType" element={<ConfigPage />} />
