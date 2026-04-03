@@ -1,18 +1,19 @@
 import { Badge } from "@/components/ui/badge";
-import { Database, Server, Layers, ArrowRight, Box } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { motion, Variants } from "framer-motion";
+import { Database, Server, Layers, ArrowRight, Box, FileArchiveIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { motion, Variants } from 'framer-motion';
 
 interface DbSelectorProps {
-  onSelect: (db: string) => void;
-  selected?: string;
+	onSelect: (db: string) => void;
+	selected?: string;
 }
 
 const DATABASES = [
-  { id: "mongodb", name: "MongoDB", status: "available", icon: Database },
-  { id: "postgres", name: "PostgreSQL", status: "available", icon: Server },
-  { id: "mysql", name: "MySQL", status: "available", icon: Layers },
-  { id: "redis", name: "Redis", status: "available", icon: Box },
+	{ id: 'mongodb', name: 'MongoDB', status: 'available', icon: Database },
+	{ id: 'postgres', name: 'PostgreSQL', status: 'available', icon: Server },
+	{ id: 'mysql', name: 'MySQL', status: 'available', icon: Layers },
+	{ id: 'redis', name: 'Redis', status: 'available', icon: Box },
+	{ id: 'firebase', name: 'Firebase', status: 'available', icon: FileArchiveIcon },
 ];
 
 const container: Variants = {
