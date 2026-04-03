@@ -1,14 +1,7 @@
 // import { initializeApp } from "firebase-admin";
-import { cert, initializeApp, App } from "firebase-admin/app";
+import { cert, initializeApp, App, ServiceAccount } from "firebase-admin/app";
 import { Database, getDatabase } from "firebase-admin/database";
 import { Firestore, getFirestore } from "firebase-admin/firestore";
-
-// export const initializer = (uri: string, credent: string | ServiceAccount, dbName: string) => {
-//     return initializeApp({
-//         credential: cert({ ...credent as object }),
-//         databaseURL: uri,
-//     }, dbName);
-// };
 
 export type FirebaseMode = "rtdb" | "firestore";
 
@@ -26,9 +19,10 @@ export const initializer = ({
 }: {
     type?: FirebaseMode;
     url?: string; // only for rtdb
-    credential: any;
+        credential: ServiceAccount;
     name: string,
-}): IInitializeApp => {
+    }): IInitializeApp => {
+
     const app = initializeApp(
         {
             credential: cert({

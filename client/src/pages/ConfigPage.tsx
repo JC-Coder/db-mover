@@ -9,40 +9,49 @@ export function ConfigPage() {
   const navigate = useNavigate();
 
   const handleStartCopy = async (config: {
-    sourceUri: string;
-    targetUri: string;
+		sourceUri: string;
+		targetUri: string;
+		targetCredent?: string;
+		sourceCredent?: string;
+		firebaseType?: string;
   }) => {
-    try {
-      const res = await api.post("/migrate/start", {
-        type: "copy",
-        sourceUri: config.sourceUri,
-        targetUri: config.targetUri,
-        dbType: dbType,
-      });
+		try {
+			const res = await api.post('/migrate/start', {
+				type: 'copy',
+				sourceUri: config.sourceUri,
+				targetUri: config.targetUri,
+				firebaseType: config.firebaseType,
+				sourceCredent: config.sourceCredent,
+				targetCredent: config.targetCredent,
+				dbType: dbType,
+			});
 
-      const { jobId } = res.data;
+			const { jobId } = res.data;
 
-      // Store migration config for retry functionality
-      localStorage.setItem(
-        `migration_${jobId}`,
-        JSON.stringify({
-          type: "copy",
-          sourceUri: config.sourceUri,
-          targetUri: config.targetUri,
-          dbType: dbType,
-        }),
-      );
+			// Store migration config for retry functionality
+			localStorage.setItem(
+				`migration_${jobId}`,
+				JSON.stringify({
+					type: 'copy',
+					sourceUri: config.sourceUri,
+					targetUri: config.targetUri,
+					sourceCredent: config.sourceCredent,
+					targetCredent: config.targetCredent,
+					firebaseType: config.firebaseType,
+					dbType: dbType,
+				}),
+			);
 
-      toast.success("Migration started", {
-        description: "Your data is being transferred securely.",
-      });
-      navigate(`/migration/${jobId}`);
-    } catch (err: any) {
-      console.error(err);
-      const msg = err.response?.data?.error || "Failed to start migration job.";
-      toast.error("Migration failed", { description: msg });
-      throw err; // Re-throw to let form handle loading state
-    }
+			toast.success('Migration started', {
+				description: 'Your data is being transferred securely.',
+			});
+			navigate(`/migration/${jobId}`);
+		} catch (err: any) {
+			console.error(err);
+			const msg = err.response?.data?.error || 'Failed to start migration job.';
+			toast.error('Migration failed', { description: msg });
+			throw err; // Re-throw to let form handle loading state
+		}
   };
 
   const handleStartDownload = async (config: {

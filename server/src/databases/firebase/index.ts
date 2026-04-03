@@ -3,10 +3,12 @@ import { Writable } from "stream";
 import archiver from "archiver";
 import { verifyConnection } from "./connection";
 import { runDownload as runFirebaseDownload } from "./download";
+import { runCopyMigration } from "./migration";
+import { ServiceAccount } from "firebase-admin";
 
 
 export class FirebaseAdapter implements IDatabaseAdapter {
-    async verifyConnection(uri: string, credent: string): Promise<boolean> {
+    async verifyConnection(uri: string, credent: ServiceAccount): Promise<boolean> {
         if (!credent) throw new Error("credentials are needed");
         return verifyConnection(uri, credent);
     }
@@ -14,16 +16,23 @@ export class FirebaseAdapter implements IDatabaseAdapter {
     async runCopyMigration(
         jobId: string,
         sourceUri: string,
-        targetUri: string
+        targetUri: string,
+        sourceCredent?: ServiceAccount,
+        targetCredent?: ServiceAccount,
+        type?: string,
+
     ): Promise<void> {
-        // return runCopyMigration(jobId, sourceUri, targetUri);
+        if (!sourceCredent || !targetCredent) throw new Error("credentials are needed");
+        if (!type) type = "rtdb";
+
+        return runCopyMigration(jobId, sourceUri, targetUri, sourceCredent, targetCredent, type);
     }
 
     async runDownload(
         jobId: string,
         sourceUri: string,
         stream: Writable,
-        credent?: string,
+        credent?: ServiceAccount,
         type?: string,): Promise<void> {
 
 

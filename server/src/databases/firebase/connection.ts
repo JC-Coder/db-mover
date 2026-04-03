@@ -4,12 +4,12 @@ import { getDatabase } from 'firebase-admin/database';
 import { getFirestore } from 'firebase-admin/firestore';
 import { FirebaseMode, initializer } from './helper';
 
-export const connectToFirebase = async (uri: string, credent: string | ServiceAccount, type: string) => {
+export const connectToFirebase = async (uri: string, credent: ServiceAccount, type: string) => {
     const client = initializer({ url: uri, type: type as FirebaseMode, credential: credent, name: `app-${Date.now()}` });
     return client;
 };
 
-export const verifyConnection = async (uri: string, credent: string | ServiceAccount) => {
+export const verifyConnection = async (uri: string, credent: ServiceAccount) => {
 
     try {
         const client = initializer({ url: uri, credential: credent, name: `verify-${Date.now()}` });

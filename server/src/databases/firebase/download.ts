@@ -1,7 +1,7 @@
 import { App, ServiceAccount } from 'firebase-admin/app';
 import archiver from "archiver";
 import { FirebaseMode, IInitializeApp, initializer } from './helper';
-export const runDownload = async (sourceUri: string, credent: string | ServiceAccount, type: string, archive: archiver.Archiver) => {
+export const runDownload = async (sourceUri: string, credent: ServiceAccount, type: string, archive: archiver.Archiver) => {
     const client = initializer({ url: sourceUri, credential: credent, type: type as FirebaseMode, name: `firebaseDefault${Date.now()}` });
     try {
         if (type === "rtdb") {

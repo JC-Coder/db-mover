@@ -1,14 +1,23 @@
+import { ServiceAccount } from "firebase-admin";
 import { Writable } from "stream";
 
 export type DatabaseType = "mongodb" | "postgres" | "mysql" | "redis" | "firebase";
 
 
 export interface IDatabaseAdapter {
-  verifyConnection(uri: string, credent?: string, type?: string): Promise<boolean>;
+  verifyConnection(uri: string, credent?: ServiceAccount, type?: string): Promise<boolean>;
   runCopyMigration(
     jobId: string,
     sourceUri: string,
-    targetUri: string
+    targetUri: string,
+  ): Promise<void>;
+  runCopyMigration(
+    jobId: string,
+    sourceUri: string,
+    targetUri: string,
+    sourceCredent?: ServiceAccount,
+    targetCredent?: ServiceAccount,
+    type?: string,
   ): Promise<void>;
   runDownload(
     jobId: string,
@@ -19,7 +28,7 @@ export interface IDatabaseAdapter {
     jobId: string,
     sourceUri: string,
     stream: Writable,
-    credent?: string,
+    credent?: ServiceAccount,
     type?: string,
   ): Promise<void>;
 }

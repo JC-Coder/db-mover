@@ -81,21 +81,25 @@ app.post("/api/migrate/verify", async (c) => {
 
 app.post("/api/migrate/start", async (c) => {
   const body = await c.req.json();
-  const { type, sourceUri, targetUri, dbType = "mongodb" } = body;
+  const { type, sourceUri, targetUri, firebaseType, sourceCredent, targetCredent, dbType = "mongodb" } = body;
 
   if (type === "copy") {
     if (!sourceUri || !targetUri) return c.json({ error: "Missing URIs" }, 400);
 
     try {
       const job = createJob("copy", dbType as string);
-      runCopyMigration(
-        job.id,
-        sourceUri,
-        targetUri,
-        dbType as DatabaseType,
-      ).catch((err) => {
-        console.error("Background migration failed:", err);
-      });
+      const adapter = getDatabaseAdapter(dbType as DatabaseType);
+      await adapter.runCopyMigration(job.id, sourceUri, targetUri, sourceCredent, targetCredent, firebaseType);
+      // runCopyMigration(
+      //   job.id,
+      //   sourceUri,
+      //   targetUri,
+      //   dbType as DatabaseType,
+      //   type: mode,
+      //   credent,
+      // ).catch((err) => {
+      //   console.error("Background migration failed:", err);
+      // });
       return c.json({ jobId: job.id, message: "Migration started" });
     } catch (error) {
       const errorMessage =

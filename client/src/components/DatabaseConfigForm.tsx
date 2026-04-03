@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Uploader } from './ui/uploader';
+import { CheckBox } from './ui/checkbox';
 
 interface DatabaseConfigFormProps {
 	dbType: string;
@@ -226,6 +227,7 @@ export function DatabaseConfigForm({
 		setFirebaseSourceError(null);
 		setFirebaseTargetError(null);
 		setMode('copy');
+		setFirebaseMode('rtdb');
 		clearDraft(dbType);
 		setHasDraft(false);
 	};
@@ -248,14 +250,24 @@ export function DatabaseConfigForm({
 			}
 
 			if (mode === 'copy') {
-				if (!validateUri(targetUri, dbType)) {
+				if (
+					dbType === 'firebase' &&
+					firebaseMode === 'rtdb' &&
+					!validateUri(targetUri, dbType)
+				) {
 					toast.error('Connection Error', {
 						description: `The destination connection string is not a valid ${dbType} URI.`,
 					});
 					setLoading(false);
 					return;
 				}
-				await onStartCopy({ sourceUri, targetUri });
+				await onStartCopy({
+					sourceUri,
+					targetUri,
+					firebaseType: firebaseMode,
+					sourceCredent: firebaseSourceConfig,
+					targetCredent: firebaseTargetConfig,
+				});
 			} else {
 				if (!firebaseSourceConfig) {
 					toast.error('Connection Error', {
@@ -300,6 +312,28 @@ export function DatabaseConfigForm({
 		{ value: 'rtdb', label: 'Realtime DB' },
 		{ value: 'firestore', label: 'Firestore' },
 	];
+
+	const FileUploader = ({
+		id,
+		error,
+		config,
+	}: {
+		id: string;
+		error: string | null;
+		config: FirebaseConfig | null;
+	}) => {
+		if (dbType === 'firebase')
+			return (
+				<Uploader
+					id={id}
+					handleFirebaseFile={handleFirebaseFile}
+					firebaseError={error}
+					firebaseConfig={config}
+				/>
+			);
+		return null;
+	};
+
 	return (
 		<motion.div
 			initial={{ opacity: 0, scale: 0.95 }}
@@ -348,53 +382,22 @@ export function DatabaseConfigForm({
 
 					<form onSubmit={handleSubmit} className='space-y-6'>
 						<div className='space-y-3'>
+							{dbType === 'firebase' && (
+								<CheckBox
+									options={options}
+									firebaseMode={firebaseMode}
+									onClick={setFirebaseMode}
+								/>
+							)}
+
 							<Label
 								htmlFor='source-uri'
 								className='text-xs font-bold uppercase tracking-wider text-muted-foreground/70'
 							>
 								Source Database
 							</Label>
-							{dbType === 'firebase' && (
-								<div className='grid grid-cols-2 gap-3'>
-									{options.map((item) => {
-										const active = firebaseMode === item.value;
-										console.log('refreshed');
-										return (
-											<button
-												key={item.value}
-												type='button'
-												onClick={() => setFirebaseMode(item.value)}
-												className={`relative p-4 rounded-xl border transition-all text-left
-        ${
-			active
-				? 'bg-indigo-600/20 border-indigo-500 shadow-lg shadow-indigo-500/10'
-				: 'bg-white/[0.03] border-white/10 hover:border-white/20'
-		}
-        `}
-											>
-												<div className='flex items-center justify-between'>
-													<span className='text-sm font-medium text-white'>
-														{item.label}
-													</span>
-
-													{/* indicator */}
-													<div
-														className={`h-4 w-4 rounded-full border flex items-center justify-center
-            ${active ? 'border-indigo-400' : 'border-white/30'}
-            `}
-													>
-														{active && (
-															<div className='h-2 w-2 rounded-full bg-indigo-400' />
-														)}
-													</div>
-												</div>
-											</button>
-										);
-									})}
-								</div>
-							)}
 							<div className='relative group'>
-								{dbType === 'firebase' && firebaseMode === 'rtdb' && (
+								{firebaseMode === 'rtdb' && (
 									<Input
 										id='source-uri'
 										type={showSource ? 'text' : 'password'}
@@ -408,8 +411,9 @@ export function DatabaseConfigForm({
 									/>
 								)}
 
-								{dbType === 'firebase' && firebaseMode === 'rtdb' && (
+								{firebaseMode === 'rtdb' && (
 									<Button
+										id='source'
 										type='button'
 										variant='ghost'
 										size='sm'
@@ -424,14 +428,11 @@ export function DatabaseConfigForm({
 									</Button>
 								)}
 
-								{dbType === 'firebase' && (
-									<Uploader
-										id='source'
-										handleFirebaseFile={handleFirebaseFile}
-										firebaseError={firebaseSourceError}
-										firebaseConfig={firebaseSourceConfig}
-									/>
-								)}
+								<FileUploader
+									id='source'
+									error={firebaseSourceError}
+									config={firebaseSourceConfig}
+								/>
 							</div>
 						</div>
 
@@ -447,10 +448,10 @@ export function DatabaseConfigForm({
 									Target Database
 								</Label>
 								<div className='relative group'>
-									{dbType === 'firebase' && firebaseMode === 'rtdb' && (
+									{firebaseMode === 'rtdb' && (
 										<Input
 											id='target-uri'
-											type={showSource ? 'text' : 'password'}
+											type={showTarget ? 'text' : 'password'}
 											placeholder={getPlaceholder(dbType)}
 											value={targetUri}
 											onChange={(e) => setTargetUri(e.target.value)}
@@ -460,8 +461,9 @@ export function DatabaseConfigForm({
 											required
 										/>
 									)}
-									{dbType === 'firebase' && firebaseMode === 'rtdb' && (
+									{firebaseMode === 'rtdb' && (
 										<Button
+											id='target'
 											type='button'
 											variant='ghost'
 											size='sm'
@@ -475,11 +477,10 @@ export function DatabaseConfigForm({
 											)}
 										</Button>
 									)}
-									<Uploader
+									<FileUploader
 										id='target'
-										handleFirebaseFile={handleFirebaseFile}
-										firebaseError={firebaseTargetError}
-										firebaseConfig={firebaseTargetConfig}
+										error={firebaseTargetError}
+										config={firebaseTargetConfig}
 									/>
 								</div>
 							</div>
