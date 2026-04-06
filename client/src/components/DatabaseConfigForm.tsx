@@ -140,14 +140,14 @@ export function DatabaseConfigForm({
 
 		// 🔒 1. Basic file validation
 		if (file.type !== 'application/json') {
-			if (type === 'source') setFirebaseSourceError('Only JSON files are allowed');
+			if (type === 'upload-source') setFirebaseSourceError('Only JSON files are allowed');
 			else setFirebaseTargetError('Only JSON files are allowed');
 			return;
 		}
 
 		// Limit size (service account files are usually small <10KB)
 		if (file.size > 50 * 1024) {
-			if (type === 'source') setFirebaseSourceError('File too large (max 50KB)');
+			if (type === 'upload-source') setFirebaseSourceError('File too large (max 50KB)');
 			else setFirebaseTargetError('File too large (max 50KB)');
 			return;
 		}
@@ -187,10 +187,10 @@ export function DatabaseConfigForm({
 				privateKey: json.private_key,
 			};
 
-			if (type === 'source') setFirebaseSourceConfig(normalized);
+			if (type === 'upload-source') setFirebaseSourceConfig(normalized);
 			else setFirebaseTargetConfig(normalized);
 		} catch (err: any) {
-			if (type === 'source') {
+			if (type === 'upload-source') {
 				setFirebaseSourceConfig(null);
 				setFirebaseSourceError(err.message || 'Invalid Firebase credentials');
 			} else {
@@ -429,7 +429,7 @@ export function DatabaseConfigForm({
 								)}
 
 								<FileUploader
-									id='source'
+									id='upload-source'
 									error={firebaseSourceError}
 									config={firebaseSourceConfig}
 								/>
@@ -478,7 +478,7 @@ export function DatabaseConfigForm({
 										</Button>
 									)}
 									<FileUploader
-										id='target'
+										id='upload-target'
 										error={firebaseTargetError}
 										config={firebaseTargetConfig}
 									/>

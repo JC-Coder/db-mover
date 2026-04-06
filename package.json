@@ -20,8 +20,5 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
-  },
-  "dependencies": {
-    "firebase-admin": "^13.7.0"
   }
 }
