@@ -7,7 +7,7 @@ COPY client/package*.json ./client/
 COPY server/package*.json ./server/
 
 # Install all dependencies from root
-RUN npm ci
+RUN npm install
 
 # 1. Build Client
 FROM base AS client-builder
@@ -26,7 +26,7 @@ WORKDIR /app
 # Only need production dependencies for the server
 COPY package*.json ./
 COPY server/package*.json ./server/
-RUN npm ci --omit=dev --workspace=server
+RUN npm install --omit=dev --workspace=server
 
 # Copy built files
 COPY --from=server-builder /app/server/dist ./dist
