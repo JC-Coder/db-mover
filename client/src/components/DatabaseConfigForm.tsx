@@ -61,7 +61,7 @@ const validateUri = (uri: string, dbType: string): boolean => {
 		mysql: /^mysql:\/\//,
 		redis: /^redis?:\/\//,
 		firebase:
-			/^https:\/\/([a-z0-9-]+)(-default-rtdb)?\.(firebaseio\.com|firebasedatabase\.app)\/?$/i,
+			/^https:\/\/([a-z0-9-]+)(-default-rtdb)?\.(firebaseio\.com|firebasedatabase\.app)(\/.*)?$/i,
 	};
 
 	const pattern = patterns[dbType];
@@ -210,13 +210,9 @@ export function DatabaseConfigForm({
 	}, [dbType, mode, sourceUri, targetUri]);
 
 	useEffect(() => {
-		if (firebaseMode === 'firestore') {
-			setSourceUri('undefined');
-			setTargetUri('undefined');
-		} else {
-			setSourceUri('');
-			setTargetUri('');
-		}
+		// Stop using 'undefined' hack. Firestore only needs the service account JSON.
+		setSourceUri('');
+		setTargetUri('');
 	}, [firebaseMode]);
 
 	const handleClearDraft = () => {
@@ -237,30 +233,63 @@ export function DatabaseConfigForm({
 		setLoading(true);
 
 		try {
-			if (
-				dbType === 'firebase' &&
-				firebaseMode === 'rtdb' &&
-				!validateUri(sourceUri, dbType)
-			) {
-				toast.error('Connection Error', {
-					description: `The source connection string is not a valid ${dbType} URI.`,
-				});
-				setLoading(false);
-				return;
-			}
+			// 1. Validate RTDB URIs if applicable
+			if (dbType === 'firebase' && firebaseMode === 'rtdb') {
+				if (!validateUri(sourceUri, dbType)) {
+					toast.error('Source Error', { description: 'Invalid Source RTDB URL' });
+					setLoading(false);
+					return;
+				}
 
-			if (mode === 'copy') {
-				if (
-					dbType === 'firebase' &&
-					firebaseMode === 'rtdb' &&
-					!validateUri(targetUri, dbType)
-				) {
-					toast.error('Connection Error', {
-						description: `The destination connection string is not a valid ${dbType} URI.`,
+				// Check Project ID mismatch if config is loaded
+				const urlProjectId = sourceUri.match(/https:\/\/([a-z0-9-]+)/i)?.[1];
+				if (firebaseSourceConfig && urlProjectId && !urlProjectId.startsWith(firebaseSourceConfig.projectId)) {
+					toast.error('Configuration Mismatch', { 
+						description: `Source URL (${urlProjectId}) does not appear to belong to Project ${firebaseSourceConfig.projectId}` 
 					});
 					setLoading(false);
 					return;
 				}
+			}
+
+			if (mode === 'copy') {
+				// 2. Identity Check
+				if (sourceUri === targetUri && sourceUri !== '' && dbType !== 'firebase') {
+					toast.error('Validation Error', { description: 'Source and Target URIs cannot be the same.' });
+					setLoading(false);
+					return;
+				}
+
+				if (dbType === 'firebase') {
+					if (!firebaseSourceConfig || (mode === 'copy' && !firebaseTargetConfig)) {
+						toast.error('Missing Credentials', { description: 'Please upload the required Firebase Service Account JSON files.' });
+						setLoading(false);
+						return;
+					}
+
+					if (firebaseMode === 'rtdb' && !validateUri(targetUri, dbType)) {
+						toast.error('Target Error', { description: 'Invalid Target RTDB URL' });
+						setLoading(false);
+						return;
+					}
+
+					// Check Target Project ID mismatch
+					const targetUrlId = targetUri.match(/https:\/\/([a-z0-9-]+)/i)?.[1];
+					if (firebaseTargetConfig && targetUrlId && !targetUrlId.startsWith(firebaseTargetConfig.projectId)) {
+						toast.error('Configuration Mismatch', { 
+							description: `Target URL (${targetUrlId}) does not appear to belong to Project ${firebaseTargetConfig.projectId}` 
+						});
+						setLoading(false);
+						return;
+					}
+
+					if (firebaseSourceConfig?.projectId === firebaseTargetConfig?.projectId && firebaseSourceConfig) {
+						toast.error('Validation Error', { description: 'Source and Target Firebase projects cannot be the same.' });
+						setLoading(false);
+						return;
+					}
+				}
+
 				await onStartCopy({
 					sourceUri,
 					targetUri,
@@ -269,10 +298,9 @@ export function DatabaseConfigForm({
 					targetCredent: firebaseTargetConfig,
 				});
 			} else {
-				if (!firebaseSourceConfig) {
-					toast.error('Connection Error', {
-						description: `The missing info in json please upload the proper one`,
-					});
+				// Download Mode
+				if (dbType === 'firebase' && !firebaseSourceConfig) {
+					toast.error('Missing Credentials', { description: 'Please upload your Firebase Service Account JSON.' });
 					setLoading(false);
 					return;
 				}

@@ -12,12 +12,14 @@ export interface IInitializeApp {
   firestore?: Firestore;
 }
 
-export const initializer = ({ type, url, credential, name, }: {
+export interface IInitializerParams {
   type?: FirebaseMode; /* for rtdb */
   url?: string;
   credential: ServiceAccount;
   name: string;
-}): IInitializeApp => {
+}
+
+export const initializer = ({ type, url, credential, name, }: IInitializerParams): IInitializeApp => {
   const app = initializeApp(
     {
       credential: cert({

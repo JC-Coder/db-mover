@@ -84,7 +84,10 @@ app.post("/api/migrate/start", async (c) => {
   const { type, sourceUri, targetUri, firebaseType, sourceCredent, targetCredent, dbType = "mongodb" } = body;
 
   if (type === "copy") {
-    if (!sourceUri || !targetUri) return c.json({ error: "Missing URIs" }, 400);
+    const isFirestore = dbType === "firebase" && firebaseType === "firestore";
+    if (!isFirestore && (!sourceUri || !targetUri)) {
+      return c.json({ error: "Missing URIs" }, 400);
+    }
 
     const job = createJob("copy", dbType as string);
     const adapter = getDatabaseAdapter(dbType as DatabaseType);
@@ -173,7 +176,8 @@ app.post("/api/download", async (c) => {
   const body = await c.req.json();
   const { sourceUri, credent, type, dbType = "mongodb" } = body;
 
-  if (!sourceUri) return c.json({ error: "Missing Source URI" }, 400);
+  const isFirestore = dbType === "firebase" && type === "firestore";
+  if (!isFirestore && !sourceUri) return c.json({ error: "Missing Source URI" }, 400);
 
   c.header("Content-Type", "application/zip");
   c.header(

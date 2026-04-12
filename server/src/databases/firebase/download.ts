@@ -32,50 +32,82 @@ export const runDownload = async (
 const downloadRealTimeDatabase = async (
   client: IInitializeApp, archive: archiver.Archiver,
 ) => {
-  if (!client) return;
+  if (!client || !client.database) return;
   const dataBase = client.database;
-  const snapshot = await dataBase?.ref("/").once("value");
-  if (!snapshot?.exists()) return;
-  const data = snapshot.toJSON();
-  if (!data) return;
-  archive.append(JSON.stringify(data), {
-    name: `${dataBase?.app.name}.json`,
-  });
+  const rootRef = dataBase.ref("/");
+
+  let lastKey: string | null = null;
+  const BATCH_SIZE = 500;
+
+  while (true) {
+    let query = rootRef.orderByKey().limitToFirst(BATCH_SIZE);
+    if (lastKey) {
+      query = query.startAfter(lastKey);
+    }
+
+    const snapshot = await query.once("value");
+    if (!snapshot.exists()) break;
+
+    let count = 0;
+    snapshot.forEach((child) => {
+      const key = child.key;
+      const data = child.val();
+      if (key) {
+        archive.append(JSON.stringify({ [key]: data }), {
+          name: `${key}.json`,
+        });
+        lastKey = key;
+        count++;
+      }
+    });
+
+    if (count < BATCH_SIZE) break;
+  }
+
   return await archive.finalize();
 };
+
+const FIRESTORE_DOWNLOAD_MAX_DEPTH = 10;
 
 const downloadFirestore = async (
   client: IInitializeApp, archive: archiver.Archiver,
 ) => {
-  const traverse = async (path = "") => {
-    const collections = await client.firestore?.listCollections();
-    const items = [];
-    if (!collections) return;
+  const firestore = client.firestore;
+  if (!firestore) return;
 
-    for (const col of collections) {
-      const colPath = path ? `${path}/${col.id}` : col.id;
+  const downloadCollection = async (col: any, path: string, depth: number) => {
+    if (depth > FIRESTORE_DOWNLOAD_MAX_DEPTH) return;
 
-      const snapshot = await col.get();
+    const snapshot = await col.get();
+    const docs = [];
 
-      for (const doc of snapshot.docs) {
-        const docPath = `${colPath}/${doc.id}`;
-        items.push({
-          documentId: doc.id,
-          data: doc.data(),
-        });
+    for (const doc of snapshot.docs) {
+      const docData = doc.data();
+      const docPath = `${path}/${doc.id}`;
+      
+      docs.push({
+        id: doc.id,
+        data: docData,
+      });
+
+      // Check for sub-collections
+      const subCollections = await doc.ref.listCollections();
+      for (const sub of subCollections) {
+        await downloadCollection(sub, `${docPath}/${sub.id}`, depth + 1);
       }
+    }
 
-      const collectionData = {
-        collectionId: col.id,
-        data: items,
-      };
-
-      archive.append(JSON.stringify(collectionData), {
-        name: `${col.id}.json`,
+    if (docs.length > 0) {
+      archive.append(JSON.stringify(docs), {
+        name: `${path.replace(/\//g, "_")}.json`,
       });
     }
   };
 
-  await traverse("");
+  const rootCollections = await firestore.listCollections();
+  for (const col of rootCollections) {
+    await downloadCollection(col, col.id, 0);
+  }
+
   await archive.finalize();
 };
