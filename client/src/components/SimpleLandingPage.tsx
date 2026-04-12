@@ -69,7 +69,7 @@ export function SimpleLandingPage({ onStart }: ISimpleLandingPageProps) {
         </div>
       </section>
 
-      <section className="border-t border-[#3A2B20] px-6 py-16">
+      <section className="px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <div className="mx-auto mt-2 max-w-4xl">
             <h2 className="text-center text-3xl font-semibold leading-relaxed text-[#F3E9DC] sm:text-4xl">
@@ -103,7 +103,7 @@ export function SimpleLandingPage({ onStart }: ISimpleLandingPageProps) {
         </div>
       </section>
 
-      <section className="border-t border-[#3A2B20] px-6 py-16">
+      <section className="px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <SectionTitle title="What it does" />
           <p className="mx-auto mt-5 max-w-3xl text-center text-[#E3D7C8]/80">
@@ -148,7 +148,7 @@ export function SimpleLandingPage({ onStart }: ISimpleLandingPageProps) {
         </div>
       </section>
 
-      <section className="border-t border-[#3A2B20] px-6 py-16">
+      <section className="px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <SectionTitle title="How it works" />
           <p className="mx-auto mt-5 max-w-3xl text-center text-[#E3D7C8]/80">
@@ -175,7 +175,7 @@ export function SimpleLandingPage({ onStart }: ISimpleLandingPageProps) {
         </div>
       </section>
 
-      <section className="border-t border-[#3A2B20] px-6 py-16">
+      <section className="px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <SectionTitle title="Developer feedback" />
           <p className="mx-auto mt-5 max-w-3xl text-center text-[#E3D7C8]/80">
@@ -269,12 +269,10 @@ interface ISectionTitleProps {
 
 function SectionTitle({ title }: ISectionTitleProps) {
   return (
-    <div className="flex items-center justify-center gap-4">
-      <span className="h-px w-16 bg-[#5A4331] sm:w-24" />
+    <div className="flex items-center justify-center">
       <h2 className="text-center text-2xl font-semibold capitalize sm:text-3xl">
         {title}
       </h2>
-      <span className="h-px w-16 bg-[#5A4331] sm:w-24" />
     </div>
   );
 }
