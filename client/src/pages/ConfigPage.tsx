@@ -29,7 +29,7 @@ export function ConfigPage() {
 			const { jobId } = res.data;
 
 			// Store migration config for retry functionality
-			localStorage.setItem(
+sessionStorage.setItem(
 				`migration_${jobId}`,
 				JSON.stringify({
 					type: 'copy',

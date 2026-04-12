@@ -5,7 +5,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { stream, streamSSE } from "hono/streaming";
-import { createJob, getJob, Job } from "./lib/jobManager";
+import { createJob, getJob, Job, addLog, updateJob } from "./lib/jobManager";
 import { runCopyMigration, runDownload } from "./services/migration";
 import { getDatabaseAdapter, DatabaseType } from "./databases";
 import archiver from "archiver";
@@ -86,29 +86,30 @@ app.post("/api/migrate/start", async (c) => {
   if (type === "copy") {
     if (!sourceUri || !targetUri) return c.json({ error: "Missing URIs" }, 400);
 
-    try {
-      const job = createJob("copy", dbType as string);
-      const adapter = getDatabaseAdapter(dbType as DatabaseType);
-      await adapter.runCopyMigration(job.id, sourceUri, targetUri, sourceCredent, targetCredent, firebaseType);
-      // runCopyMigration(
-      //   job.id,
-      //   sourceUri,
-      //   targetUri,
-      //   dbType as DatabaseType,
-      //   type: mode,
-      //   credent,
-      // ).catch((err) => {
-      //   console.error("Background migration failed:", err);
-      // });
-      return c.json({ jobId: job.id, message: "Migration started" });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      return c.json(
-        { error: `Failed to start migration: ${errorMessage}` },
-        500,
-      );
-    }
+    const job = createJob("copy", dbType as string);
+    const adapter = getDatabaseAdapter(dbType as DatabaseType);
+
+    const startCopyJob = async () => {
+      try {
+        await adapter.runCopyMigration(
+          job.id,
+          sourceUri,
+          targetUri,
+          sourceCredent,
+          targetCredent,
+          firebaseType,
+        );
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error("Background migration failed:", error);
+        addLog(job.id, `Migration failed: ${errorMessage}`);
+        updateJob(job.id, { status: "failed", error: errorMessage });
+      }
+    };
+
+    void startCopyJob();
+    return c.json({ jobId: job.id, message: "Migration started" });
   }
 
   return c.json({ error: "Invalid migration type" }, 400);
