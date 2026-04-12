@@ -9,69 +9,84 @@ export function ConfigPage() {
   const navigate = useNavigate();
 
   const handleStartCopy = async (config: {
-    sourceUri: string;
-    targetUri: string;
+		sourceUri: string;
+		targetUri: string;
+		targetCredent?: string;
+		sourceCredent?: string;
+		firebaseType?: string;
   }) => {
-    try {
-      const res = await api.post("/migrate/start", {
-        type: "copy",
-        sourceUri: config.sourceUri,
-        targetUri: config.targetUri,
-        dbType: dbType,
-      });
+		try {
+			const res = await api.post('/migrate/start', {
+				type: 'copy',
+				sourceUri: config.sourceUri,
+				targetUri: config.targetUri,
+				firebaseType: config.firebaseType,
+				sourceCredent: config.sourceCredent,
+				targetCredent: config.targetCredent,
+				dbType: dbType,
+			});
 
-      const { jobId } = res.data;
+			const { jobId } = res.data;
 
-      // Store migration config for retry functionality
-      sessionStorage.setItem(
-        `migration_${jobId}`,
-        JSON.stringify({
-          type: "copy",
-          sourceUri: config.sourceUri,
-          targetUri: config.targetUri,
-          dbType: dbType,
-        }),
-      );
+			// Store migration config for retry functionality
+sessionStorage.setItem(
+				`migration_${jobId}`,
+				JSON.stringify({
+					type: 'copy',
+					sourceUri: config.sourceUri,
+					targetUri: config.targetUri,
+					sourceCredent: config.sourceCredent,
+					targetCredent: config.targetCredent,
+					firebaseType: config.firebaseType,
+					dbType: dbType,
+				}),
+			);
 
-      toast.success("Migration started", {
-        description: "Your data is being transferred securely.",
-      });
-      navigate(`/migration/${jobId}`);
-    } catch (err: any) {
-      console.error(err);
-      const msg = err.response?.data?.error || "Failed to start migration job.";
-      toast.error("Migration failed", { description: msg });
-      throw err; // Re-throw to let form handle loading state
-    }
+			toast.success('Migration started', {
+				description: 'Your data is being transferred securely.',
+			});
+			navigate(`/migration/${jobId}`);
+		} catch (err: any) {
+			console.error(err);
+			const msg = err.response?.data?.error || 'Failed to start migration job.';
+			toast.error('Migration failed', { description: msg });
+			throw err; // Re-throw to let form handle loading state
+		}
   };
 
-  const handleStartDownload = async (config: { sourceUri: string }) => {
-    const promise = async () => {
-      const response = await api.post(
-        "/download",
-        {
-          sourceUri: config.sourceUri,
-          dbType: dbType,
-        },
-        {
-          responseType: "blob",
-        },
-      );
+  const handleStartDownload = async (config: {
+		sourceUri: string;
+		credent?: any;
+		type?: string;
+  }) => {
+		const promise = async () => {
+			const response = await api.post(
+				'/download',
+				{
+					sourceUri: config.sourceUri,
+					credent: config.credent,
+					type: config.type,
+					dbType: dbType,
+				},
+				{
+					responseType: 'blob',
+				},
+			);
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `dump_${Date.now()}.zip`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    };
+			const url = window.URL.createObjectURL(new Blob([response.data]));
+			const link = document.createElement('a');
+			link.href = url;
+			link.setAttribute('download', `dump_${Date.now()}.zip`);
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+		};
 
-    toast.promise(promise(), {
-      loading: "Preparing download...",
-      success: "Download started!",
-      error: "Export failed.",
-    });
+		toast.promise(promise(), {
+			loading: 'Preparing download...',
+			success: 'Download started!',
+			error: 'Export failed.',
+		});
   };
 
   return (
