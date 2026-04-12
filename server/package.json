@@ -4,7 +4,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc"
+    "build": "tsc",
+    "seed-firebase": "tsx scripts/firebase-seed.ts",
+    "verify-firebase": "tsx scripts/firebase-verify.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
