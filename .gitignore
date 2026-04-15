@@ -42,3 +42,5 @@ Thumbs.db
 # Vite cache
 client/.vite/
 .agent/
+
+local_test
