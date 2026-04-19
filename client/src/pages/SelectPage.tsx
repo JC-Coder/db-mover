@@ -10,7 +10,7 @@ export function SelectPage() {
   };
 
   return (
-    <div className="container mx-auto px-6 max-w-7xl pt-12 pb-24">
+    <div className="min-h-screen bg-[#120E0A] text-[#F5EFE8] container mx-auto px-6 max-w-7xl pt-12 pb-24">
       <motion.div
         key="select"
         initial={{ opacity: 0, x: 20 }}
