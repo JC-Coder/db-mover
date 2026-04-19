@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { MigrationTerminal } from "@/components/MigrationTerminal";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
 
 const parseStoredMigrationConfig = (
   raw: string,
@@ -132,7 +133,16 @@ export function MigrationPage() {
   }, [jobId]);
 
   return (
-    <div className="container mx-auto px-6 max-w-7xl pt-12 pb-24">
+    <div className="min-h-screen bg-[#080604] text-[#F5EFE8] px-4 sm:px-6 pt-6 pb-24">
+      <div className="w-full max-w-2xl mx-auto">
+        <button
+          onClick={() => navigate("/select")}
+          className="mb-8 flex items-center gap-2 text-sm text-[#E3D7C8]/50 hover:text-[#F5EFE8] transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          New migration
+        </button>
+      </div>
       <MigrationTerminal
         logs={logs}
         progress={progress}

@@ -1,16 +1,5 @@
 import { useEffect, useRef } from "react";
-import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Terminal,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  Database,
-  Layers,
-  RotateCw,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CheckCircle2, XCircle, Loader2, Database, Layers, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -28,177 +17,136 @@ interface MigrationTerminalProps {
   onRetry?: () => void;
 }
 
-export function MigrationTerminal({
-  logs,
-  progress,
-  status,
-  dbType,
-  stats,
-  onRetry,
-}: MigrationTerminalProps) {
+const STATUS_CONFIG = {
+  pending: { label: 'Waiting', color: 'text-[#E3D7C8]/40', bg: 'bg-[#0E0A07]', border: 'border-[#2A1C12]' },
+  running: { label: 'Running', color: 'text-[#C98A3D]', bg: 'bg-[#C98A3D]/10', border: 'border-[#C98A3D]/30' },
+  completed: { label: 'Completed', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  failed: { label: 'Failed', color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+};
+
+export function MigrationTerminal({ logs, progress, status, dbType, stats, onRetry }: MigrationTerminalProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const cfg = STATUS_CONFIG[status];
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [logs]);
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="w-full max-w-4xl mx-auto rounded-3xl glass-card shadow-2xl overflow-hidden border-white/10"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full max-w-2xl mx-auto space-y-8"
     >
-      <CardHeader className="border-b border-white/5 bg-white/[0.01] p-6 flex flex-row items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-            <Terminal className="h-5 w-5 text-indigo-400" />
-          </div>
-          <CardTitle className="text-xl font-bold text-white">
-            Migration Status
-          </CardTitle>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold text-[#F5EFE8]">Migration</h1>
+          <p className="mt-2 text-base text-[#E3D7C8]/50">
+            {status === 'pending' && 'Starting up…'}
+            {status === 'running' && 'Your data is being transferred. Keep this tab open.'}
+            {status === 'completed' && 'All done. Your data has been transferred successfully.'}
+            {status === 'failed' && 'Something went wrong. Check the logs below and retry.'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          {status === "failed" && onRetry && (
-            <Button
+          {status === 'failed' && onRetry && (
+            <button
               onClick={onRetry}
-              size="sm"
-              className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-all"
+              className="flex items-center gap-2 rounded-xl border border-[#2A1C12] bg-[#0E0A07] px-5 py-2.5 text-base font-medium text-[#F5EFE8] hover:border-[#4A3022] transition-colors"
             >
-              <RotateCw className="mr-2 h-4 w-4" />
+              <RotateCw className="h-3.5 w-3.5" />
               Retry
-            </Button>
+            </button>
           )}
-          <Badge
-            variant="outline"
-            className={cn(
-              "capitalize px-4 py-2 rounded-xl border font-medium text-xs",
-              status === "running" &&
-                "bg-indigo-600/10 text-indigo-400 border-indigo-500/20",
-              status === "completed" &&
-                "bg-emerald-600/10 text-emerald-400 border-emerald-500/20",
-              status === "failed" &&
-                "bg-rose-600/10 text-rose-400 border-rose-500/20",
-              status === "pending" &&
-                "bg-white/5 text-white/40 border-white/10",
-            )}
-          >
-            {status === "running" && (
-              <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-            )}
-            {status === "completed" && (
-              <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
-            )}
-            {status === "failed" && <XCircle className="mr-2 h-3.5 w-3.5" />}
-            {status}
-          </Badge>
+          <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium", cfg.color, cfg.bg, cfg.border)}>
+            {status === 'running' && <Loader2 className="h-3 w-3 animate-spin" />}
+            {status === 'completed' && <CheckCircle2 className="h-3 w-3" />}
+            {status === 'failed' && <XCircle className="h-3 w-3" />}
+            {cfg.label}
+          </span>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="p-0">
-        <div className="p-8 space-y-8">
-          <div className="space-y-4">
-            <div className="flex justify-between items-end px-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
-                Progress
-              </span>
-              <span className="text-2xl font-bold text-white">
-                {Math.round(progress)}%
-              </span>
-            </div>
-            <div className="relative h-2 w-full bg-white/[0.03] rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
-                className="h-full bg-indigo-500 rounded-full"
-              />
-            </div>
-          </div>
-
-          {stats && (
-            <div className="grid grid-cols-2 gap-4">
-              <StatCard
-                icon={<Layers className="h-5 w-5" />}
-                label={dbType === "redis" ? "Keys processed" : "Collections"}
-                value={
-                  dbType === "redis"
-                    ? stats.documents.toLocaleString()
-                    : stats.collections
-                }
-              />
-              <StatCard
-                icon={<Database className="h-5 w-5" />}
-                label={dbType === "redis" ? "Total keys" : "Documents"}
-                value={
-                  dbType === "redis" && stats.totalDocuments
-                    ? stats.totalDocuments.toLocaleString()
-                    : stats.documents.toLocaleString()
-                }
-              />
-            </div>
-          )}
+      {/* Progress */}
+      <div className="rounded-2xl border border-[#2A1C12] bg-[#0E0A07] p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold uppercase tracking-widest text-[#E3D7C8]/40">Progress</span>
+          <span className="text-3xl font-bold text-[#F5EFE8]">{Math.round(progress)}%</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-[#2A1C12] overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.5, ease: 'easeInOut' }}
+            className={cn("h-full rounded-full", status === 'failed' ? 'bg-rose-500' : status === 'completed' ? 'bg-emerald-500' : 'bg-[#C98A3D]')}
+          />
         </div>
 
-        <div className="mx-8 mb-8 overflow-hidden rounded-2xl border border-white/10 bg-black/40">
-          <div className="flex items-center px-4 py-3 border-b border-white/10 bg-white/[0.02]">
-            <span className="text-xs font-medium text-muted-foreground">
-              Log Output
-            </span>
+        {stats && (stats.collections > 0 || stats.documents > 0) && (
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <StatCard
+              icon={<Layers className="h-4 w-4" />}
+              label={dbType === 'redis' ? 'Keys processed' : 'Collections'}
+              value={dbType === 'redis' ? stats.documents.toLocaleString() : stats.collections}
+            />
+            <StatCard
+              icon={<Database className="h-4 w-4" />}
+              label={dbType === 'redis' ? 'Total keys' : 'Documents'}
+              value={dbType === 'redis' && stats.totalDocuments ? stats.totalDocuments.toLocaleString() : stats.documents.toLocaleString()}
+            />
           </div>
-          <div
-            ref={scrollRef}
-            className="h-[240px] overflow-y-auto p-4 font-mono text-sm space-y-2 scrollbar-thin scrollbar-thumb-white/10"
-          >
-            {logs.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-white/20">
-                <span className="text-xs">Waiting for logs...</span>
-              </div>
-            )}
-            {logs.map((log, i) => (
-              <div key={i} className="flex gap-3 text-xs md:text-sm">
-                <span className="text-white/30 shrink-0 select-none">
-                  {new Date().toLocaleTimeString("en-GB", { hour12: false })}
+        )}
+      </div>
+
+      {/* Log output */}
+      <div className="rounded-2xl border border-[#2A1C12] bg-[#080604] overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-[#2A1C12] px-4 py-3">
+          <div className="flex gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#2A1C12]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#2A1C12]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#2A1C12]" />
+          </div>
+          <span className="text-sm text-[#E3D7C8]/30 ml-1">Log output</span>
+        </div>
+        <div
+          ref={scrollRef}
+          className="h-[300px] overflow-y-auto p-5 font-mono text-sm space-y-2"
+        >
+          {logs.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-[#E3D7C8]/20">
+              Waiting for logs…
+            </div>
+          ) : (
+            logs.map((log, i) => (
+              <div key={i} className="flex gap-3">
+                <span className="shrink-0 select-none text-[#E3D7C8]/25">
+                  {new Date().toLocaleTimeString('en-GB', { hour12: false })}
                 </span>
-                <span
-                  className={cn(
-                    "break-all",
-                    log.includes("Error") || log.includes("Failed")
-                      ? "text-rose-400"
-                      : log.includes("Success") || log.includes("Completed")
-                        ? "text-emerald-400"
-                        : "text-white/70",
-                  )}
-                >
+                <span className={cn(
+                  'break-all',
+                  log.includes('Error') || log.includes('Failed') ? 'text-rose-400' :
+                    log.includes('Success') || log.includes('Completed') ? 'text-emerald-400' :
+                      'text-[#E3D7C8]/65'
+                )}>
                   {log}
                 </span>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
-      </CardContent>
+      </div>
     </motion.div>
   );
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-}) {
+function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
   return (
-    <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center gap-4">
-      <div className="p-2.5 rounded-xl bg-white/5 text-white/70">{icon}</div>
+    <div className="flex items-center gap-3 rounded-xl border border-[#2A1C12] bg-[#080604] p-3">
+      <div className="text-[#C98A3D]/70">{icon}</div>
       <div>
-        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-          {label}
-        </p>
-        <p className="text-xl font-bold text-white">{value}</p>
+        <p className="text-xs text-[#E3D7C8]/40 uppercase tracking-wide">{label}</p>
+        <p className="text-xl font-bold text-[#F5EFE8]">{value}</p>
       </div>
     </div>
   );
