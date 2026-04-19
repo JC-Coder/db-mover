@@ -40,9 +40,9 @@ export function GitHubStarButton({ repo, className = "" }: GitHubStarButtonProps
       href={`https://github.com/${repo}`}
       target="_blank"
       rel="noreferrer"
-      className={`fixed bottom-8 left-8 z-50 flex items-center gap-2 rounded-full border border-[#3C2B1F] bg-[#1A130D]/90 px-4 py-2.5 shadow-xl transition-all hover:scale-105 hover:bg-[#2B2018] active:scale-95 sm:flex ${className}`}
+      className={`fixed bottom-8 left-8 z-50 flex items-center gap-2 rounded-full border border-[#2A1D16] bg-[#110C0A]/90 px-4 py-2.5 shadow-xl transition-all hover:scale-105 hover:bg-[#1C130E] active:scale-95 sm:flex ${className}`}
     >
-      <div className="flex items-center gap-1.5 border-r border-[#3C2B1F] pr-2.5">
+      <div className="flex items-center gap-1.5 border-r border-[#2A1D16] pr-2.5">
         <GithubIcon className="h-4 w-4 text-[#F5EFE8]" />
         <span className="text-xs font-semibold text-[#F5EFE8]">Star us</span>
       </div>

@@ -27,13 +27,13 @@ const REPO = "JC-Coder/db-mover";
 
 export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
   return (
-    <div className="min-h-full bg-[#120E0A] text-[#F5EFE8]">
+    <div className="min-h-full bg-[#080504] text-[#F5EFE8]">
       {/* Floating Header */}
       <header className="fixed top-6 left-1/2 z-50 w-[calc(100%-3rem)] max-w-5xl -translate-x-1/2">
-        <nav className="flex items-center justify-between rounded-full border border-[#3C2B1F] bg-[#1A130D]/80 px-6 py-3 shadow-lg backdrop-blur-md">
+        <nav className="flex items-center justify-between rounded-full border border-[#2A1D16] bg-[#110C0A]/80 px-6 py-3 shadow-lg backdrop-blur-md">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C98A3D]">
-              <Database className="h-5 w-5 text-[#1D130C]" />
+              <Database className="h-5 w-5 text-[#120B07]" />
             </div>
             <span className="text-lg font-bold tracking-tight text-[#F5EFE8]">
               DB Mover
@@ -67,7 +67,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
           <Button
             onClick={onStart}
             size="sm"
-            className="rounded-full bg-[#C98A3D] px-5 text-[#1D130C] hover:bg-[#D49A54]"
+            className="rounded-full bg-[#C98A3D] px-5 text-[#120B07] hover:bg-[#D49A54]"
           >
             Launch App
           </Button>
@@ -77,7 +77,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
       {/* Hero */}
       <section className="px-6 pt-48 pb-28">
         <div className="mx-auto max-w-5xl text-center">
-          <p className="inline-flex items-center gap-2 rounded-full border border-[#3C2B1F] bg-[#1A130D] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#D8B788]">
+          <p className="inline-flex items-center gap-2 rounded-full border border-[#2A1D16] bg-[#110C0A] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#D8B788]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#C98A3D]" />
             100% Free &amp; Open Source
           </p>
@@ -113,7 +113,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
             {["MongoDB", "PostgreSQL", "MySQL", "Redis"].map((db) => (
               <span
                 key={db}
-                className="rounded-full border border-[#3C2B1F] px-3 py-1"
+                className="rounded-full border border-[#2A1D16] px-3 py-1"
               >
                 {db}
               </span>
@@ -124,7 +124,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
             <Button
               onClick={onStart}
               size="lg"
-              className="h-12 rounded-md bg-[#C98A3D] px-8 text-[#1D130C] hover:bg-[#D49A54]"
+              className="h-12 rounded-md bg-[#C98A3D] px-8 text-[#120B07] hover:bg-[#D49A54]"
             >
               Start Migrating — It's Free
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -132,7 +132,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
             <Button
               variant="outline"
               size="lg"
-              className="h-12 rounded-md border-[#5D4635] bg-transparent px-8 text-[#F5EFE8] hover:bg-[#2B2018]"
+              className="h-12 rounded-md border-[#433023] bg-transparent px-8 text-[#F5EFE8] hover:bg-[#1C130E]"
               asChild
             >
               <a
@@ -156,7 +156,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
               Every engineer has lost an hour to a dump command they half-remembered.
             </h2>
 
-            <div className="mx-auto mt-8 h-px w-40 bg-gradient-to-r from-transparent via-[#6A4B36] to-transparent" />
+            <div className="mx-auto mt-8 h-px w-40 bg-gradient-to-r from-transparent via-[#4E3627] to-transparent" />
 
             <div className="mt-10 space-y-7 text-base leading-relaxed text-[#E3D7C8]/85 sm:text-lg">
               <p>
@@ -290,7 +290,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
 
       {/* Final CTA */}
       <section className="px-6 py-24">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-[#3C2B1F] bg-[#1A130D] p-12 text-center shadow-[0_32px_80px_-24px_rgba(0,0,0,0.8)]">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-[#2A1D16] bg-[#110C0A] p-12 text-center shadow-[0_32px_80px_-24px_rgba(0,0,0,0.8)]">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#D8B788]">
             Free forever · Open source · No account needed
           </p>
@@ -305,7 +305,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
             <Button
               onClick={onStart}
               size="lg"
-              className="h-12 rounded-md bg-[#C98A3D] px-10 text-[#1D130C] hover:bg-[#D49A54]"
+              className="h-12 rounded-md bg-[#C98A3D] px-10 text-[#120B07] hover:bg-[#D49A54]"
             >
               Launch the App
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -315,7 +315,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#3C2B1F] bg-[#120E0A] px-6 py-12">
+      <footer className="border-t border-[#2A1D16] bg-[#080504] px-6 py-12">
         <div className="mx-auto max-w-5xl">
           <div className="flex flex-col items-center justify-between gap-8 md:flex-row md:gap-4">
             <div className="flex flex-col items-center gap-2 md:items-start">
@@ -380,10 +380,10 @@ function FeedbackCard({ name, role, content }: IFeedbackCardProps) {
     .toUpperCase();
 
   return (
-    <article className="relative flex flex-col justify-between rounded-xl border border-[#3C2B1F] bg-[#1A130D] p-7 shadow-sm transition-all hover:border-[#6A4B36]">
+    <article className="relative flex flex-col justify-between rounded-xl border border-[#2A1D16] bg-[#110C0A] p-7 shadow-sm transition-all hover:border-[#4E3627]">
       <div>
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2B2018] text-xs font-bold text-[#D8B788]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1C130E] text-xs font-bold text-[#D8B788]">
             {avatarText}
           </div>
           <div className="overflow-hidden">
@@ -410,8 +410,8 @@ interface IInfoCardProps {
 
 function InfoCard({ icon, title, description, bullets }: IInfoCardProps) {
   return (
-    <article className="rounded-xl border border-[#3C2B1F] bg-[#1A130D] p-7 shadow-[0_18px_50px_-28px_rgba(0,0,0,0.7)]">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#2B2018]">
+    <article className="rounded-xl border border-[#2A1D16] bg-[#110C0A] p-7 shadow-[0_18px_50px_-28px_rgba(0,0,0,0.7)]">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1C130E]">
         {icon}
       </div>
       <h3 className="mt-5 text-xl font-semibold">{title}</h3>
@@ -441,7 +441,7 @@ interface IStepCardProps {
 
 function StepCard({ step, title, description }: IStepCardProps) {
   return (
-    <article className="rounded-xl border border-[#3C2B1F] bg-[#1A130D] p-7">
+    <article className="rounded-xl border border-[#2A1D16] bg-[#110C0A] p-7">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#D8B788]">
         {step}
       </p>
