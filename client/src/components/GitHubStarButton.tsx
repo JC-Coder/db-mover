@@ -30,10 +30,10 @@ export function GitHubStarButton({ repo, className = "" }: GitHubStarButtonProps
     loading
       ? "…"
       : stars === null
-      ? "★"
-      : stars >= 1000
-      ? `${(stars / 1000).toFixed(1)}k`
-      : String(stars);
+        ? "★"
+        : stars >= 1000
+          ? `${(stars / 1000).toFixed(1)}k`
+          : String(stars);
 
   return (
     <a
