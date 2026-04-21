@@ -26,33 +26,36 @@ Support the development of **DB Mover** by holding **$DBM** on Bags!
 
 ## 🚀 Overview
 
-**DB Mover** is an open-source tool designed to simplify the complex process of database migration. It eliminates the need for complex CLI commands, connection strings wrestling, and manual dump file management.
+**DB Mover** is an open-source, enterprise-grade migration engine designed to make database relocation seamless. It eliminates the complexity of CLI tools, manual dump management, and connection string wrestling.
 
-With **DB Mover**, you can stream multi-cloud enterprise datasets with absolute precision, zero structural loss, and sub-second latency. It provides a visual interface to connect, select, and move your data effortlessly.
+With a focus on **Visual-First** operations, DB Mover allows you to stream entire datasets between cloud providers with zero structural loss and sub-second visual tracking.
 
 ## ✨ Features
 
-- **🚫 No CLI Required**: Stop wrestling with `mongodump` and `psql` flags. Connect your databases via a clean UI.
-- **⚡ Direct Transfer**: Stream data directly from source to destination. No intermediate local storage required.
-- **📦 Easy Backups**: One-click download of your entire database structure and data as a compressed archive.
-- **🔒 Secure**: Your credentials and data never touch our persistent storage (ephemeral processing).
-- **👁️ Live Monitoring**: Real-time progress tracking and logs for every collection and document transferred.
+- **🚫 No CLI Required**: Stop wrestling with `mongodump`, `pg_dump`, or `redis-cli`. Manage everything via a premium dark-mode interface.
+- **🔥 Firebase Master Class**: Specialized adapters for **Firestore** (recursive deep-copy up to 15 levels) and **Realtime Database**.
+- **⚡ SSE-Powered Progress**: Real-time event streaming via **Server-Sent Events (SSE)** for zero-latency logs and progress tracking.
+- **📊 Visual Analytics**: Beautifully crafted dashboards using **Recharts** to track data volume, records processed, and migration health.
+- **🔒 Secure & Ephemeral**: Your credentials never touch persistent storage. Data is streamed in-memory via high-performance pipes.
+- **📦 Direct Transfer vs. Dumps**: Choose between a direct live-sync (source → target) or a one-click compressed backup of your entire structure.
 
-## 🗄️ Supported Databases
+## 🗄️ Supported Ecosystems
 
-We currently support seamless migration for the following ecosystems:
-
-- **MongoDB**
-- **PostgreSQL**
-- **MySQL**
-- **Redis**
-- _(More coming soon)_
+| Database | Support Level | Features |
+| :--- | :--- | :--- |
+| **MongoDB** | Full | Auth Support, Collection Streaming |
+| **PostgreSQL**| Full | Schema integrity, Table migration |
+| **MySQL** | Full | Relational mapping, Fast-pipe streaming |
+| **Redis** | Full | Key-Value mirroring |
+| **Firebase** | **Advanced** | Firestore (Deep Copy), RTDB Support |
+| **BigQuery** | _Roadmap_ | Coming soon |
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React, Vite, Tailwind CSS, Framer Motion
-- **Backend**: Node.js, Express, TypeScript
-- **Architecture**: Streaming-based data pipeline
+- **Frontend**: React 18, Vite, Tailwind CSS, Framer Motion, Radix UI.
+- **Visualization**: Recharts (SVG-based high-performance charts).
+- **Backend**: Node.js, **Hono** (High-performance, type-safe API framework).
+- **Architecture**: Streaming-based data pipeline with **BulkWriter** optimizations for NoSQL.
 
 ## 🚀 Getting Started
 
@@ -64,50 +67,38 @@ We currently support seamless migration for the following ecosystems:
 ### Installation
 
 1.  **Clone the repository**
-
     ```bash
     git clone https://github.com/JC-Coder/db-mover.git
     cd db-mover
     ```
 
 2.  **Install dependencies**
-
     ```bash
     npm run install:all
     ```
 
-3.  **Start the development server**
-
+3.  **Start the development engine**
     ```bash
     npm run dev
     ```
+    *Client will be available at http://localhost:5173*
+    *Server will be available at http://localhost:3000*
 
-    This will start both the client (port 5173) and the server (port 3000) concurrently.
+## 🐳 Deployment
 
-4.  **Access the app**
-
-    Open your browser and navigate to `http://localhost:5173`.
+Quickly spin up the mover using Docker:
+```bash
+docker build -t db-mover .
+docker run -p 3000:3000 db-mover
+```
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to get started.
+We welcome contributions! Whether it's adding a new database adapter or improving the UI, please see our [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 📄 License
 
 This project is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**.
 
-You are free to:
-
-- **Share** — copy and redistribute the material in any medium or format.
-- **Adapt** — remix, transform, and build upon the material.
-
-Under the following terms:
-
-- **Attribution** — You must give appropriate credit.
-- **NonCommercial** — You may not use the material for commercial purposes (e.g., selling it as a SaaS product).
-
-See the [LICENSE](LICENSE) file for the full text.
-
 ---
-
-Disclaimer: I am the designated royalty recipient for the $DBM token via Bags.fm. Please note: I am not the creator or developer of this token, nor do I manage its liquidity or roadmap. This address is provided for community transparency only.
+Disclaimer: I am the designated royalty recipient for the $DBM token via Bags.fm. I am not the creator or developer of this token.
