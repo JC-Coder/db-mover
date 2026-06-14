@@ -44,3 +44,4 @@ client/.vite/
 .agent/
 
 local_test
+.codebase-memory/

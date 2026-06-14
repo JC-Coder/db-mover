@@ -113,17 +113,6 @@ export function MigrationPage() {
       // Clean up session storage when navigating away
       if (jobId) {
         try {
-          const storedConfig = sessionStorage.getItem(`migration_${jobId}`);
-          if (storedConfig) {
-            const parsedConfig = JSON.parse(storedConfig);
-            const storedDbType =
-              typeof parsedConfig?.dbType === "string"
-                ? parsedConfig.dbType.trim()
-                : "";
-            if (storedDbType) {
-              sessionStorage.removeItem(`db_mover_draft_${storedDbType}`);
-            }
-          }
           sessionStorage.removeItem(`migration_${jobId}`);
         } catch (storageError) {
           console.error("Error cleaning up migration storage", storageError);

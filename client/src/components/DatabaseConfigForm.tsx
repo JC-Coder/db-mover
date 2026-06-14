@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	Download,
 	Play,
@@ -230,10 +230,14 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 	};
 
 	useEffect(() => {
-		if (sourceUri || targetUri) { saveDraft(dbType, { mode, sourceUri, targetUri }); setHasDraft(true); }
+		if (sourceUri || targetUri) {
+			saveDraft(dbType, { mode, sourceUri, targetUri });
+			setHasDraft(true);
+		} else {
+			clearDraft(dbType);
+			setHasDraft(false);
+		}
 	}, [dbType, mode, sourceUri, targetUri]);
-
-	useEffect(() => { setSourceUri(''); setTargetUri(''); }, [firebaseMode]);
 
 	const handleClearDraft = () => {
 		setSourceUri(''); setTargetUri('');
@@ -381,7 +385,11 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 						<CheckBox
 							options={options}
 							firebaseMode={firebaseMode}
-							onClick={setFirebaseMode}
+							onClick={(val) => {
+								setFirebaseMode(val);
+								setSourceUri('');
+								setTargetUri('');
+							}}
 							activeColor='#C98A3D'
 							inactiveColor='#0E0A07'
 							textColor='#F5EFE8'
@@ -395,20 +403,21 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 						<div className="space-y-3">
 							{firebaseMode === 'rtdb' && (
 								<div className="relative">
-									<Input
+									{/* Use Textarea for source connection string to allow wrapping and more space */}
+									<Textarea
 										id="source-uri"
-										type={showSource ? 'text' : 'password'}
 										placeholder={getPlaceholder(dbType)}
 										value={sourceUri}
 										onChange={(e) => setSourceUri(e.target.value)}
 										autoComplete="off"
 										data-lpignore="true"
 										required
-										className="h-13 text-base rounded-xl border-[#2A1C12] bg-[#0E0A07] text-[#F5EFE8] placeholder:text-[#E3D7C8]/25 pr-10 focus-visible:ring-[#C98A3D]/40 focus-visible:border-[#4A3022]"
+										style={!showSource ? { WebkitTextSecurity: 'disc' } as React.CSSProperties : undefined}
+										className="min-h-[104px] py-3 text-base rounded-xl border-[#2A1C12] bg-[#0E0A07] text-[#F5EFE8] placeholder:text-[#E3D7C8]/25 pr-10 focus-visible:ring-[#C98A3D]/40 focus-visible:border-[#4A3022] resize-none"
 									/>
 									<button
 										type="button"
-										className="absolute right-3 top-1/2 -translate-y-1/2 text-[#E3D7C8]/30 hover:text-[#E3D7C8]/70 transition-colors"
+										className="absolute right-3 top-3 text-[#E3D7C8]/30 hover:text-[#E3D7C8]/70 transition-colors"
 										onClick={() => setShowSource(!showSource)}
 									>
 										{showSource ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -434,20 +443,21 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 								<div className="space-y-3">
 									{firebaseMode === 'rtdb' && (
 										<div className="relative">
-											<Input
+											{/* Use Textarea for destination connection string to allow wrapping and more space */}
+											<Textarea
 												id="target-uri"
-												type={showTarget ? 'text' : 'password'}
 												placeholder={getPlaceholder(dbType)}
 												value={targetUri}
 												onChange={(e) => setTargetUri(e.target.value)}
 												autoComplete="off"
 												data-lpignore="true"
 												required
-												className="h-13 text-base rounded-xl border-[#2A1C12] bg-[#0E0A07] text-[#F5EFE8] placeholder:text-[#E3D7C8]/25 pr-10 focus-visible:ring-[#C98A3D]/40 focus-visible:border-[#4A3022]"
+												style={!showTarget ? { WebkitTextSecurity: 'disc' } as React.CSSProperties : undefined}
+												className="min-h-[104px] py-3 text-base rounded-xl border-[#2A1C12] bg-[#0E0A07] text-[#F5EFE8] placeholder:text-[#E3D7C8]/25 pr-10 focus-visible:ring-[#C98A3D]/40 focus-visible:border-[#4A3022] resize-none"
 											/>
 											<button
 												type="button"
-												className="absolute right-3 top-1/2 -translate-y-1/2 text-[#E3D7C8]/30 hover:text-[#E3D7C8]/70 transition-colors"
+												className="absolute right-3 top-3 text-[#E3D7C8]/30 hover:text-[#E3D7C8]/70 transition-colors"
 												onClick={() => setShowTarget(!showTarget)}
 											>
 												{showTarget ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
