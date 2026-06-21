@@ -1,6 +1,37 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="128" fill="#0F172A"/>
-  <path d="M128 160V192C128 227.346 185.305 256 256 256C326.695 256 384 227.346 384 192V160M128 160C128 124.654 185.305 96 256 96C326.695 96 384 124.654 384 160M128 160V192M384 160V192M128 256V288C128 323.346 185.305 352 256 352C288.5 352 318.5 346.5 341.5 337" stroke="#38BDF8" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M128 256C128 220.654 185.305 192 256 192C326.695 192 384 220.654 384 256V288M384 256V288" stroke="#38BDF8" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M336 384L416 384M416 384L384 352M416 384L384 416" stroke="#22C55E" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">DB Mover logo</title>
+  <desc id="description">A gold database with two arrows moving data to the right.</desc>
+  <defs>
+    <linearGradient id="background" x1="70" y1="44" x2="444" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0D0A08"/>
+      <stop offset="1" stop-color="#050403"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="124" y1="102" x2="414" y2="410" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7B84B"/>
+      <stop offset=".48" stop-color="#E8A23A"/>
+      <stop offset="1" stop-color="#C98225"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feFlood flood-color="#D88C27" flood-opacity=".18"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="76" fill="url(#background)"/>
+  <g fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+    <ellipse cx="224" cy="156" rx="102" ry="45" fill="url(#gold)" stroke-width="12"/>
+    <path d="M122 156v139c0 28 45 51 102 51 24 0 47-4 65-11" stroke-width="12"/>
+    <path d="M326 156v78" stroke-width="12"/>
+    <path d="M122 218c0 28 45 51 102 51 33 0 63-8 82-20" stroke-width="12"/>
+    <path d="M122 281c0 28 45 51 102 51 11 0 22-1 32-3" stroke-width="12"/>
+    <path d="M172 392c58 0 72-90 136-90h91" stroke-width="20"/>
+    <path d="m367 270 35 32-35 32" stroke-width="20"/>
+    <path d="M172 431c72 0 86-89 153-89h74" stroke-width="20"/>
+    <path d="m367 310 35 32-35 32" stroke-width="20"/>
+  </g>
 </svg>
