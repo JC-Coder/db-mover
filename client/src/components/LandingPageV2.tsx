@@ -4,7 +4,6 @@ import {
   ArrowRight,
   BookOpen,
   CheckCircle2,
-  Database,
   Zap,
   ShieldCheck,
   BarChart2,
@@ -32,9 +31,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
       <header className="fixed top-6 left-1/2 z-50 w-[calc(100%-3rem)] max-w-5xl -translate-x-1/2">
         <nav className="flex items-center justify-between rounded-full border border-[#2A1D16] bg-[#110C0A]/80 px-6 py-3 shadow-lg backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C98A3D]">
-              <Database className="h-5 w-5 text-[#120B07]" />
-            </div>
+            <img src="/logo.svg" alt="" className="h-8 w-8 rounded-lg" />
             <span className="text-lg font-bold tracking-tight text-[#F5EFE8]">
               DB Mover
             </span>
@@ -320,7 +317,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
           <div className="flex flex-col items-center justify-between gap-8 md:flex-row md:gap-4">
             <div className="flex flex-col items-center gap-2 md:items-start">
               <div className="flex items-center gap-2">
-                <Database className="h-5 w-5 text-[#C98A3D]" />
+                <img src="/logo.svg" alt="" className="h-7 w-7 rounded-md" />
                 <span className="text-lg font-bold tracking-tight text-[#F5EFE8]">
                   DB Mover
                 </span>
