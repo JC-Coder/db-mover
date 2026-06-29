@@ -35,11 +35,11 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
   return (
     <div className="min-h-full bg-[var(--landing-bg)] text-[var(--landing-text)] transition-colors duration-500 ease-out">
       {/* Floating Header */}
-      <header className="fixed top-6 left-1/2 z-50 w-[calc(100%-3rem)] max-w-5xl -translate-x-1/2">
-        <nav className="flex items-center justify-between rounded-full border border-[var(--landing-border)] bg-[var(--landing-panel)] px-6 py-3 shadow-lg backdrop-blur-md transition-colors duration-500">
-          <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="" className="h-8 w-8 rounded-lg" />
-            <span className="text-lg font-bold tracking-tight text-[var(--landing-text)] transition-colors duration-500">
+      <header className="fixed top-6 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-5xl -translate-x-1/2 sm:w-[calc(100%-3rem)]">
+        <nav className="flex items-center justify-between gap-3 rounded-full border border-[var(--landing-border)] bg-[var(--landing-panel)] px-3 py-3 shadow-lg backdrop-blur-md transition-colors duration-500 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2">
+            <img src="/logo.svg" alt="" className="h-8 w-8 shrink-0 rounded-lg" />
+            <span className="whitespace-nowrap text-lg font-bold tracking-tight text-[var(--landing-text)] transition-colors duration-500 max-[430px]:hidden">
               DB Mover
             </span>
           </div>
@@ -68,12 +68,12 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
             </a>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <ThemeToggle />
             <Button
               onClick={onStart}
               size="sm"
-              className="rounded-full bg-[var(--landing-accent)] px-5 text-[var(--landing-accent-text)] transition-colors duration-300 hover:bg-[var(--landing-accent-hover)]"
+              className="rounded-full bg-[var(--landing-accent)] px-4 text-[var(--landing-accent-text)] transition-colors duration-300 hover:bg-[var(--landing-accent-hover)] sm:px-5"
             >
               Launch App
             </Button>
