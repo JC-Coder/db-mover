@@ -6,13 +6,19 @@ import { ConfigPage } from "@/pages/ConfigPage";
 import { MigrationPage } from "@/pages/MigrationPage";
 import { StatsPage } from "@/pages/StatsPage";
 import { LandingPageV2 } from "@/components/LandingPageV2";
+import { ThemeProvider, THEME_VARS, useTheme } from "@/lib/theme";
 
-function App() {
+function AppRoutes() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme } = useTheme();
 
   return (
-    <div className="min-h-screen bg-mesh text-foreground flex flex-col font-sans selection:bg-indigo-500/30 relative font-feature-settings-['ss01']">
+    <div
+      className="min-h-screen bg-[var(--landing-bg)] text-[var(--landing-text)] flex flex-col font-sans selection:bg-indigo-500/30 relative transition-colors duration-500 font-feature-settings-['ss01']"
+      style={THEME_VARS[theme]}
+      data-theme={theme}
+    >
       <div className="fixed inset-0 bg-noise z-0 opacity-[0.02]" />
 
       <main className="flex-1 relative z-10">
@@ -30,8 +36,16 @@ function App() {
         </AnimatePresence>
       </main>
 
-      <Toaster position="bottom-right" closeButton theme="dark" />
+      <Toaster position="bottom-right" closeButton theme={theme} />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppRoutes />
+    </ThemeProvider>
   );
 }
 

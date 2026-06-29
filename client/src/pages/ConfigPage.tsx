@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { DatabaseConfigForm } from "@/components/DatabaseConfigForm";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -91,14 +92,17 @@ sessionStorage.setItem(
   };
 
   return (
-    <div className="min-h-screen bg-[#080604] text-[#F5EFE8] px-4 sm:px-6 pt-6 pb-24">
-      <button
-        onClick={() => navigate("/select")}
-        className="mb-8 flex items-center gap-2 text-sm text-[#E3D7C8]/50 hover:text-[#F5EFE8] transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back
-      </button>
+    <div className="min-h-screen bg-[var(--landing-bg)] text-[var(--landing-text)] transition-colors duration-500 px-4 sm:px-6 pt-6 pb-24">
+      <div className="mb-8 flex items-center justify-between">
+        <button
+          onClick={() => navigate("/select")}
+          className="flex items-center gap-2 text-sm text-[var(--landing-subtle)] transition-colors hover:text-[var(--landing-text)]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+        <ThemeToggle />
+      </div>
       <motion.div
         key="config"
         initial={{ opacity: 0, scale: 0.98 }}

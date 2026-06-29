@@ -1,8 +1,9 @@
-import { useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { GitHubStarButton } from "@/components/GitHubStarButton";
 import { DatabaseBrand } from "@/components/DatabaseBrand";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { DATABASE_BRANDS } from "@/lib/databaseBrands";
+import { useTheme } from "@/lib/theme";
 import {
   ArrowRight,
   BookOpen,
@@ -11,8 +12,6 @@ import {
   ShieldCheck,
   BarChart2,
   Layers,
-  Moon,
-  Sun,
 } from "lucide-react";
 
 function GithubIcon({ className }: { className?: string }) {
@@ -29,53 +28,12 @@ interface ISimpleLandingPageProps {
 
 const REPO = "JC-Coder/db-mover";
 const HERO_BRAND_LOOP = [...DATABASE_BRANDS, ...DATABASE_BRANDS];
-type LandingTheme = "dark" | "light";
-
-const THEME_VARS: Record<LandingTheme, CSSProperties> = {
-  dark: {
-    "--landing-bg": "#080504",
-    "--landing-text": "#F5EFE8",
-    "--landing-muted": "rgba(227, 215, 200, 0.72)",
-    "--landing-subtle": "rgba(227, 215, 200, 0.5)",
-    "--landing-panel": "rgba(17, 12, 10, 0.82)",
-    "--landing-card": "#110C0A",
-    "--landing-card-soft": "#1C130E",
-    "--landing-border": "#2A1D16",
-    "--landing-border-strong": "#4E3627",
-    "--landing-accent": "#C98A3D",
-    "--landing-accent-hover": "#D49A54",
-    "--landing-accent-text": "#120B07",
-    "--landing-code": "#D8C3AA",
-    "--landing-shadow": "rgba(0, 0, 0, 0.72)",
-  } as CSSProperties,
-  light: {
-    "--landing-bg": "#FBF7F0",
-    "--landing-text": "#1F1712",
-    "--landing-muted": "rgba(64, 49, 39, 0.72)",
-    "--landing-subtle": "rgba(91, 70, 56, 0.58)",
-    "--landing-panel": "rgba(255, 250, 243, 0.86)",
-    "--landing-card": "#FFF8EF",
-    "--landing-card-soft": "#F3E6D6",
-    "--landing-border": "#E6D3BC",
-    "--landing-border-strong": "#C9A77F",
-    "--landing-accent": "#B8752F",
-    "--landing-accent-hover": "#A96729",
-    "--landing-accent-text": "#FFF8EF",
-    "--landing-code": "#8A5A30",
-    "--landing-shadow": "rgba(120, 80, 42, 0.2)",
-  } as CSSProperties,
-};
 
 export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
-  const [theme, setTheme] = useState<LandingTheme>("dark");
-  const nextTheme = theme === "dark" ? "light" : "dark";
+  const { theme } = useTheme();
 
   return (
-    <div
-      className="min-h-full bg-[var(--landing-bg)] text-[var(--landing-text)] transition-colors duration-500 ease-out"
-      style={THEME_VARS[theme]}
-      data-theme={theme}
-    >
+    <div className="min-h-full bg-[var(--landing-bg)] text-[var(--landing-text)] transition-colors duration-500 ease-out">
       {/* Floating Header */}
       <header className="fixed top-6 left-1/2 z-50 w-[calc(100%-3rem)] max-w-5xl -translate-x-1/2">
         <nav className="flex items-center justify-between rounded-full border border-[var(--landing-border)] bg-[var(--landing-panel)] px-6 py-3 shadow-lg backdrop-blur-md transition-colors duration-500">
@@ -111,24 +69,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setTheme(nextTheme)}
-              className="relative flex h-9 w-16 items-center rounded-full border border-[var(--landing-border)] bg-[var(--landing-card-soft)] px-1 transition-colors duration-500"
-              aria-label={`Switch to ${nextTheme} mode`}
-            >
-              <span
-                className={`flex h-7 w-7 items-center justify-center rounded-full bg-[var(--landing-bg)] text-[var(--landing-accent)] shadow-sm transition-transform duration-500 ease-out ${
-                  theme === "light" ? "translate-x-7" : "translate-x-0"
-                }`}
-              >
-                {theme === "dark" ? (
-                  <Moon className="h-3.5 w-3.5" />
-                ) : (
-                  <Sun className="h-3.5 w-3.5" />
-                )}
-              </span>
-            </button>
+            <ThemeToggle />
             <Button
               onClick={onStart}
               size="sm"
