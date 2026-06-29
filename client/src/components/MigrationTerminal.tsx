@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { CheckCircle2, XCircle, Loader2, Database, Layers, RotateCw } from "lucide-react";
+import { DatabaseBrand } from "@/components/DatabaseBrand";
+import { getDatabaseBrand } from "@/lib/databaseBrands";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -27,6 +29,7 @@ const STATUS_CONFIG = {
 export function MigrationTerminal({ logs, progress, status, dbType, stats, onRetry }: MigrationTerminalProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const cfg = STATUS_CONFIG[status];
+  const brand = getDatabaseBrand(dbType);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -40,14 +43,26 @@ export function MigrationTerminal({ logs, progress, status, dbType, stats, onRet
     >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-[#F5EFE8]">Migration</h1>
+        <div className="flex min-w-0 items-center gap-4">
+          {brand && dbType && (
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-[#2A1C12] bg-[#0E0A07]">
+              <DatabaseBrand
+                db={dbType}
+                theme="dark"
+                variant="icon"
+                className="h-9 w-9"
+              />
+            </div>
+          )}
+          <div className="min-w-0">
+            <h1 className="text-4xl font-bold text-[#F5EFE8]">Migration</h1>
           <p className="mt-2 text-base text-[#E3D7C8]/50">
             {status === 'pending' && 'Starting up…'}
             {status === 'running' && 'Your data is being transferred. Keep this tab open.'}
             {status === 'completed' && 'All done. Your data has been transferred successfully.'}
             {status === 'failed' && 'Something went wrong. Check the logs below and retry.'}
           </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {status === 'failed' && onRetry && (

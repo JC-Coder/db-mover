@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { GitHubStarButton } from "@/components/GitHubStarButton";
+import { DatabaseBrand } from "@/components/DatabaseBrand";
+import { DATABASE_BRANDS } from "@/lib/databaseBrands";
 import {
   ArrowRight,
   BookOpen,
@@ -23,6 +25,7 @@ interface ISimpleLandingPageProps {
 }
 
 const REPO = "JC-Coder/db-mover";
+const HERO_BRAND_LOOP = [...DATABASE_BRANDS, ...DATABASE_BRANDS];
 
 export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
   return (
@@ -106,15 +109,23 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
             Copy databases or pull a backup zip — in minutes, not manuals.
           </p>
 
-          <div className="mt-4 flex flex-wrap justify-center gap-3 text-xs font-medium text-[#E3D7C8]/50">
-            {["MongoDB", "PostgreSQL", "MySQL", "Redis"].map((db) => (
-              <span
-                key={db}
-                className="rounded-full border border-[#2A1D16] px-3 py-1"
-              >
-                {db}
-              </span>
-            ))}
+          <div className="mx-auto mt-8 max-w-3xl overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
+            <div className="flex w-max animate-logo-marquee items-center gap-12">
+              {HERO_BRAND_LOOP.map((brand, index) => (
+                <span
+                  key={`${brand.id}-${index}`}
+                  className="flex h-12 w-36 shrink-0 items-center justify-center"
+                  aria-hidden={index >= DATABASE_BRANDS.length}
+                >
+                  <DatabaseBrand
+                    db={brand.id}
+                    theme="dark"
+                    variant={brand.id === "redis" ? "icon" : "wordmark"}
+                    className="h-8 w-36"
+                  />
+                </span>
+              ))}
+            </div>
           </div>
 
           <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
