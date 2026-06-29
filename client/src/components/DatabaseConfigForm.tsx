@@ -120,7 +120,7 @@ function GuideModal({ dbType, onClose }: { dbType: string; onClose: () => void }
 								<span className="shrink-0 text-xs font-bold text-[var(--landing-accent)] mt-0.5">{n}</span>
 								<div>
 									<p className="text-sm font-medium text-[var(--landing-text)]">{title}</p>
-									<p className="text-sm text-[#E3D7C8]/60 mt-0.5">{body}</p>
+									<p className="text-sm text-[var(--landing-muted)] mt-0.5">{body}</p>
 								</div>
 							</div>
 						))}
@@ -134,10 +134,10 @@ function GuideModal({ dbType, onClose }: { dbType: string; onClose: () => void }
 							<ShieldAlert className="h-4 w-4 text-[var(--landing-accent)]" />
 							<p className="text-sm font-semibold text-[var(--landing-text)]">IP allowlist — most common issue</p>
 						</div>
-						<p className="text-sm text-[#E3D7C8]/70 leading-relaxed">
-							Cloud databases block outside connections by default. Before running, whitelist the server IP in your provider's network settings — or temporarily allow <span className="font-mono text-[#D8C3AA]">0.0.0.0/0</span>.
+						<p className="text-sm text-[var(--landing-muted)] leading-relaxed">
+							Cloud databases block outside connections by default. Before running, whitelist the server IP in your provider's network settings — or temporarily allow <span className="font-mono text-[var(--landing-code)]">0.0.0.0/0</span>.
 						</p>
-						<div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-bg)] divide-y divide-[#2A1C12]">
+						<div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-bg)] divide-y divide-[var(--landing-border)]">
 							{ipSteps.map(({ service, path }) => (
 								<div key={service} className="px-4 py-3">
 									<p className="text-xs font-medium text-[var(--landing-text)]">{service}</p>
@@ -155,7 +155,7 @@ function GuideModal({ dbType, onClose }: { dbType: string; onClose: () => void }
 							{DB_NAMES[dbType] || 'Database'} connection string format
 						</p>
 						<div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-bg)] px-4 py-3">
-							<p className="font-mono text-xs text-[#D8C3AA] break-all">
+							<p className="font-mono text-xs text-[var(--landing-code)] break-all">
 								{formatExamples[dbType] || formatExamples.mongodb}
 							</p>
 						</div>
@@ -330,7 +330,7 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 						<h1 className="text-3xl sm:text-4xl font-bold text-[var(--landing-text)] break-words">
 							Configure {DB_NAMES[dbType] || dbType}
 						</h1>
-						<p className="mt-2 text-base text-[#E3D7C8]/55">
+						<p className="mt-2 text-base text-[var(--landing-muted)]">
 							Paste your connection strings below to get started.
 						</p>
 					</div>
@@ -346,7 +346,7 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 
 				{/* Session notice */}
 				<div className="mb-6 flex items-center justify-between rounded-xl border border-[var(--landing-border)] bg-[var(--landing-card)] px-5 py-4">
-					<p className="text-sm text-[#E3D7C8]/55">
+					<p className="text-sm text-[var(--landing-muted)]">
 						Credentials are stored in your session only and cleared on tab close.
 					</p>
 					{hasDraft && (
@@ -370,7 +370,7 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 							className={cn(
 								"flex-1 flex items-center justify-center gap-2 rounded-xl py-3 text-base font-medium transition-all duration-200",
 								mode === m
-									? "bg-[var(--landing-accent)] text-[#1D130C]"
+									? "bg-[var(--landing-accent)] text-[var(--landing-accent-text)]"
 									: "text-[var(--landing-subtle)] hover:text-[var(--landing-text)]"
 							)}
 						>
@@ -397,7 +397,7 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 						/>)}
 					{/* Source */}
 					<div className="space-y-2">
-						<label className="text-sm font-semibold uppercase tracking-widest text-[#E3D7C8]/45">
+						<label className="text-sm font-semibold uppercase tracking-widest text-[var(--landing-subtle)]">
 							Source
 						</label>
 						<div className="space-y-3">
@@ -413,11 +413,11 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 										data-lpignore="true"
 										required
 										style={!showSource ? { WebkitTextSecurity: 'disc' } as React.CSSProperties : undefined}
-										className="min-h-[104px] py-3 text-base rounded-xl border-[var(--landing-border)] bg-[var(--landing-card)] text-[var(--landing-text)] placeholder:text-[var(--landing-subtle)] pr-10 focus-visible:ring-[#C98A3D]/40 focus-visible:border-[var(--landing-border-strong)] resize-none"
+										className="min-h-[104px] py-3 text-base rounded-xl border-[var(--landing-border)] bg-[var(--landing-card)] text-[var(--landing-text)] placeholder:text-[var(--landing-subtle)] pr-10 focus-visible:ring-[var(--landing-accent)] focus-visible:border-[var(--landing-border-strong)] resize-none"
 									/>
 									<button
 										type="button"
-										className="absolute right-3 top-3 text-[var(--landing-subtle)] hover:text-[#E3D7C8]/70 transition-colors"
+										className="absolute right-3 top-3 text-[var(--landing-subtle)] hover:text-[var(--landing-muted)] transition-colors"
 										onClick={() => setShowSource(!showSource)}
 									>
 										{showSource ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -437,7 +437,7 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 								exit={{ opacity: 0, height: 0 }}
 								className="space-y-2 overflow-hidden"
 							>
-								<label className="text-sm font-semibold uppercase tracking-widest text-[#E3D7C8]/45">
+								<label className="text-sm font-semibold uppercase tracking-widest text-[var(--landing-subtle)]">
 									Destination
 								</label>
 								<div className="space-y-3">
@@ -453,11 +453,11 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 												data-lpignore="true"
 												required
 												style={!showTarget ? { WebkitTextSecurity: 'disc' } as React.CSSProperties : undefined}
-												className="min-h-[104px] py-3 text-base rounded-xl border-[var(--landing-border)] bg-[var(--landing-card)] text-[var(--landing-text)] placeholder:text-[var(--landing-subtle)] pr-10 focus-visible:ring-[#C98A3D]/40 focus-visible:border-[var(--landing-border-strong)] resize-none"
+												className="min-h-[104px] py-3 text-base rounded-xl border-[var(--landing-border)] bg-[var(--landing-card)] text-[var(--landing-text)] placeholder:text-[var(--landing-subtle)] pr-10 focus-visible:ring-[var(--landing-accent)] focus-visible:border-[var(--landing-border-strong)] resize-none"
 											/>
 											<button
 												type="button"
-												className="absolute right-3 top-3 text-[var(--landing-subtle)] hover:text-[#E3D7C8]/70 transition-colors"
+												className="absolute right-3 top-3 text-[var(--landing-subtle)] hover:text-[var(--landing-muted)] transition-colors"
 												onClick={() => setShowTarget(!showTarget)}
 											>
 												{showTarget ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -480,8 +480,8 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 								className="overflow-hidden"
 							>
 								<div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-card)] px-4 py-3">
-									<p className="text-sm text-[#E3D7C8]/60 leading-relaxed">
-										A compressed <span className="font-mono text-[#D8C3AA]">.zip</span> of your source data will be downloaded to your device. No destination needed.
+									<p className="text-sm text-[var(--landing-muted)] leading-relaxed">
+										A compressed <span className="font-mono text-[var(--landing-code)]">.zip</span> of your source data will be downloaded to your device. No destination needed.
 									</p>
 								</div>
 							</motion.div>
@@ -492,7 +492,7 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 					<button
 						type="submit"
 						disabled={loading}
-						className="w-full h-13 rounded-xl bg-[var(--landing-accent)] text-[#1D130C] text-base font-semibold hover:bg-[#D49A54] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2 p-3"
+						className="w-full h-13 rounded-xl bg-[var(--landing-accent)] text-[var(--landing-accent-text)] text-base font-semibold hover:bg-[var(--landing-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2 p-3"
 					>
 						{loading ? (
 							<><Loader2 className="h-4 w-4 animate-spin" /> Processing…</>

@@ -21,7 +21,7 @@ interface MigrationTerminalProps {
 
 const STATUS_CONFIG = {
   pending: { label: 'Waiting', color: 'text-[var(--landing-subtle)]', bg: 'bg-[var(--landing-card)]', border: 'border-[var(--landing-border)]' },
-  running: { label: 'Running', color: 'text-[var(--landing-accent)]', bg: 'bg-[var(--landing-accent)]/10', border: 'border-[#C98A3D]/30' },
+  running: { label: 'Running', color: 'text-[var(--landing-accent)]', bg: 'bg-[var(--landing-card-soft)]', border: 'border-[var(--landing-accent)]' },
   completed: { label: 'Completed', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
   failed: { label: 'Failed', color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
 };

@@ -1,4 +1,5 @@
 import { DatabaseBrand } from "@/components/DatabaseBrand";
+import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -16,6 +17,8 @@ const DATABASES = [
 ];
 
 export function DbSelector({ onSelect, selected }: IDbSelectorProps) {
+  const { theme } = useTheme();
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-10">
       <motion.div
@@ -61,7 +64,7 @@ export function DbSelector({ onSelect, selected }: IDbSelectorProps) {
               >
                 <DatabaseBrand
                   db={db.id}
-                  theme={isSelected ? "light" : "dark"}
+                  theme={isSelected ? "dark" : theme}
                   variant="icon"
                   className="h-10 w-10"
                 />
