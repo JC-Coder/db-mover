@@ -21,6 +21,7 @@ import {
   ArrowUpRight,
   Zap,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -325,7 +326,10 @@ export function StatsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 max-w-7xl pt-8 sm:pt-12 pb-16 sm:pb-24">
+    <div className="min-h-screen bg-[var(--landing-bg)] text-[var(--landing-text)] transition-colors duration-500 px-4 sm:px-6 pt-6 pb-16 sm:pb-24">
+      <div className="mx-auto mb-4 flex max-w-7xl justify-end">
+        <ThemeToggle />
+      </div>
       {/* Coming Soon Sticky Overlay */}
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/5 backdrop-blur" />
