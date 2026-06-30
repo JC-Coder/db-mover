@@ -390,10 +390,10 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 								setSourceUri('');
 								setTargetUri('');
 							}}
-							activeColor='#C98A3D'
-							inactiveColor='#0E0A07'
-							textColor='#F5EFE8'
-							indicatorColor='#C98A3D'
+							activeColor='var(--landing-accent)'
+							inactiveColor='[var(--landing-card)]'
+							textColor='[var(--landing-text)]'
+							indicatorColor='var(--landing-accent)'
 						/>)}
 					{/* Source */}
 					<div className="space-y-2">
@@ -413,7 +413,7 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 										data-lpignore="true"
 										required
 										style={!showSource ? { WebkitTextSecurity: 'disc' } as React.CSSProperties : undefined}
-										className="min-h-[104px] py-3 text-base rounded-xl border-[var(--landing-border)] bg-[var(--landing-card)] text-[var(--landing-text)] placeholder:text-[var(--landing-subtle)] pr-10 focus-visible:ring-[var(--landing-accent)] focus-visible:border-[var(--landing-border-strong)] resize-none"
+										className="min-h-[104px] py-3 text-base rounded-xl border-[var(--landing-border)] bg-[var(--landing-card)] text-[var(--landing-text)] placeholder:text-[var(--landing-subtle)] pr-10 focus-visible:ring-1 focus-visible:ring-[var(--landing-accent)] focus-visible:ring-offset-0 focus-visible:border-[var(--landing-accent)] resize-none"
 									/>
 									<button
 										type="button"
@@ -453,7 +453,7 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 												data-lpignore="true"
 												required
 												style={!showTarget ? { WebkitTextSecurity: 'disc' } as React.CSSProperties : undefined}
-												className="min-h-[104px] py-3 text-base rounded-xl border-[var(--landing-border)] bg-[var(--landing-card)] text-[var(--landing-text)] placeholder:text-[var(--landing-subtle)] pr-10 focus-visible:ring-[var(--landing-accent)] focus-visible:border-[var(--landing-border-strong)] resize-none"
+												className="min-h-[104px] py-3 text-base rounded-xl border-[var(--landing-border)] bg-[var(--landing-card)] text-[var(--landing-text)] placeholder:text-[var(--landing-subtle)] pr-10 focus-visible:ring-1 focus-visible:ring-[var(--landing-accent)] focus-visible:ring-offset-0 focus-visible:border-[var(--landing-accent)] resize-none"
 											/>
 											<button
 												type="button"

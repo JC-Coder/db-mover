@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { CheckCircle2, XCircle, Loader2, Database, Layers, RotateCw } from "lucide-react";
 import { DatabaseBrand } from "@/components/DatabaseBrand";
 import { getDatabaseBrand } from "@/lib/databaseBrands";
+import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -30,6 +31,7 @@ export function MigrationTerminal({ logs, progress, status, dbType, stats, onRet
   const scrollRef = useRef<HTMLDivElement>(null);
   const cfg = STATUS_CONFIG[status];
   const brand = getDatabaseBrand(dbType);
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -48,7 +50,7 @@ export function MigrationTerminal({ logs, progress, status, dbType, stats, onRet
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-card)]">
               <DatabaseBrand
                 db={dbType}
-                theme="dark"
+                theme={theme}
                 variant="icon"
                 className="h-9 w-9"
               />

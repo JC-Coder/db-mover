@@ -17,7 +17,7 @@ const DATABASES = [
 ];
 
 export function DbSelector({ onSelect, selected }: IDbSelectorProps) {
-  const { theme } = useTheme();
+  const { theme, nextTheme } = useTheme();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-10">
@@ -64,7 +64,7 @@ export function DbSelector({ onSelect, selected }: IDbSelectorProps) {
               >
                 <DatabaseBrand
                   db={db.id}
-                  theme={isSelected ? "dark" : theme}
+                  theme={isSelected ? nextTheme : theme}
                   variant="icon"
                   className="h-10 w-10"
                 />
