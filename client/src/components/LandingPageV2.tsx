@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { GitHubStarButton } from "@/components/GitHubStarButton";
 import { DatabaseBrand } from "@/components/DatabaseBrand";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { DATABASE_BRANDS } from "@/lib/databaseBrands";
+import { useTheme } from "@/lib/theme";
 import {
   ArrowRight,
   BookOpen,
@@ -28,14 +30,16 @@ const REPO = "JC-Coder/db-mover";
 const HERO_BRAND_LOOP = [...DATABASE_BRANDS, ...DATABASE_BRANDS];
 
 export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
+  const { theme } = useTheme();
+
   return (
-    <div className="min-h-full bg-[#080504] text-[#F5EFE8]">
+    <div className="min-h-full bg-[var(--landing-bg)] text-[var(--landing-text)] transition-colors duration-500 ease-out">
       {/* Floating Header */}
-      <header className="fixed top-6 left-1/2 z-50 w-[calc(100%-3rem)] max-w-5xl -translate-x-1/2">
-        <nav className="flex items-center justify-between rounded-full border border-[#2A1D16] bg-[#110C0A]/80 px-6 py-3 shadow-lg backdrop-blur-md">
-          <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="" className="h-8 w-8 rounded-lg" />
-            <span className="text-lg font-bold tracking-tight text-[#F5EFE8]">
+      <header className="fixed top-6 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-5xl -translate-x-1/2 sm:w-[calc(100%-3rem)]">
+        <nav className="flex items-center justify-between gap-3 rounded-full border border-[var(--landing-border)] bg-[var(--landing-panel)] px-3 py-3 shadow-lg backdrop-blur-md transition-colors duration-500 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2">
+            <img src="/logo.svg" alt="" className="h-8 w-8 shrink-0 rounded-lg" />
+            <span className="whitespace-nowrap text-lg font-bold tracking-tight text-[var(--landing-text)] transition-colors duration-500 max-[430px]:hidden">
               DB Mover
             </span>
           </div>
@@ -43,13 +47,13 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
           <div className="hidden items-center gap-6 md:flex">
             <a
               href="#features"
-              className="text-sm font-medium text-[#E3D7C8]/70 transition-colors hover:text-[#F5EFE8]"
+              className="text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
             >
               Features
             </a>
             <a
               href="#how-it-works"
-              className="text-sm font-medium text-[#E3D7C8]/70 transition-colors hover:text-[#F5EFE8]"
+              className="text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
             >
               How it works
             </a>
@@ -57,33 +61,36 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
               href={`https://github.com/${REPO}`}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1.5 text-sm font-medium text-[#E3D7C8]/70 transition-colors hover:text-[#F5EFE8]"
+              className="flex items-center gap-1.5 text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
             >
               <GithubIcon className="h-4 w-4" />
               GitHub
             </a>
           </div>
 
-          <Button
-            onClick={onStart}
-            size="sm"
-            className="rounded-full bg-[#C98A3D] px-5 text-[#120B07] hover:bg-[#D49A54]"
-          >
-            Launch App
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <ThemeToggle />
+            <Button
+              onClick={onStart}
+              size="sm"
+              className="rounded-full bg-[var(--landing-accent)] px-4 text-[var(--landing-accent-text)] transition-colors duration-300 hover:bg-[var(--landing-accent-hover)] sm:px-5"
+            >
+              Launch App
+            </Button>
+          </div>
         </nav>
       </header>
 
       {/* Hero */}
       <section className="px-6 pt-48 pb-28">
         <div className="mx-auto max-w-5xl text-center">
-          <p className="inline-flex items-center gap-2 rounded-full border border-[#2A1D16] bg-[#110C0A] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#D8B788]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#C98A3D]" />
+          <p className="inline-flex items-center gap-2 rounded-full border border-[var(--landing-border)] bg-[var(--landing-card)] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[var(--landing-accent)] transition-colors duration-500">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--landing-accent)] transition-colors duration-500" />
             100% Free &amp; Open Source
           </p>
           <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
             Stop googling{" "}
-            <span className="font-mono text-[#C98A3D]">pg_dump</span>{" "}
+            <span className="font-mono text-[var(--landing-accent)] transition-colors duration-500">pg_dump</span>{" "}
             flags.{" "}
             <span className="relative inline-block px-1 pb-2">
               Just move your data.
@@ -96,14 +103,14 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
                 <path
                   d="M4 14 Q 140 2 276 14"
                   fill="none"
-                  stroke="#B56A4A"
+                  stroke="var(--landing-accent)"
                   strokeWidth="5"
                   strokeLinecap="round"
                 />
               </svg>
             </span>
           </h1>
-          <p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-[#E3D7C8]/85 sm:text-lg">
+          <p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-[var(--landing-muted)] transition-colors duration-500 sm:text-lg">
             DB Mover handles the connection strings, the dump flags, and the
             transfer details so you can focus on what you're actually shipping.
             Copy databases or pull a backup zip — in minutes, not manuals.
@@ -119,7 +126,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
                 >
                   <DatabaseBrand
                     db={brand.id}
-                    theme="dark"
+                    theme={theme}
                     variant={brand.id === "redis" ? "icon" : "wordmark"}
                     className="h-8 w-36"
                   />
@@ -132,7 +139,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
             <Button
               onClick={onStart}
               size="lg"
-              className="h-12 rounded-md bg-[#C98A3D] px-8 text-[#120B07] hover:bg-[#D49A54]"
+              className="h-12 rounded-md bg-[var(--landing-accent)] px-8 text-[var(--landing-accent-text)] transition-colors duration-300 hover:bg-[var(--landing-accent-hover)]"
             >
               Start Migrating — It's Free
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -140,7 +147,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
             <Button
               variant="outline"
               size="lg"
-              className="h-12 rounded-md border-[#433023] bg-transparent px-8 text-[#F5EFE8] hover:bg-[#1C130E]"
+              className="h-12 rounded-md border-[var(--landing-border-strong)] bg-transparent px-8 text-[var(--landing-text)] transition-colors duration-300 hover:bg-[var(--landing-card-soft)]"
               asChild
             >
               <a
@@ -160,13 +167,13 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
       <section className="px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <div className="mx-auto mt-2 max-w-4xl">
-            <h2 className="text-center text-3xl font-semibold leading-relaxed text-[#F3E9DC] sm:text-4xl">
+            <h2 className="text-center text-3xl font-semibold leading-relaxed text-[var(--landing-text)] transition-colors duration-500 sm:text-4xl">
               Every engineer has lost an hour to a dump command they half-remembered.
             </h2>
 
-            <div className="mx-auto mt-8 h-px w-40 bg-gradient-to-r from-transparent via-[#4E3627] to-transparent" />
+            <div className="mx-auto mt-8 h-px w-40 bg-gradient-to-r from-transparent via-[var(--landing-border-strong)] to-transparent transition-colors duration-500" />
 
-            <div className="mt-10 space-y-7 text-base leading-relaxed text-[#E3D7C8]/85 sm:text-lg">
+            <div className="mt-10 space-y-7 text-base leading-relaxed text-[var(--landing-muted)] transition-colors duration-500 sm:text-lg">
               <p>
                 The data move itself takes seconds. The ceremony around it doesn't:
                 hunting down the right flags, double-checking URI formats,
@@ -174,10 +181,10 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
               </p>
               <p>
                 You context-switch between{" "}
-                <span className="font-mono text-[#D8C3AA]">mongodump</span>,{" "}
-                <span className="font-mono text-[#D8C3AA]">pg_dump</span>,{" "}
-                <span className="font-mono text-[#D8C3AA]">mysqldump</span>, and{" "}
-                <span className="font-mono text-[#D8C3AA]">redis-cli</span>{" "}
+                <span className="font-mono text-[var(--landing-code)]">mongodump</span>,{" "}
+                <span className="font-mono text-[var(--landing-code)]">pg_dump</span>,{" "}
+                <span className="font-mono text-[var(--landing-code)]">mysqldump</span>, and{" "}
+                <span className="font-mono text-[var(--landing-code)]">redis-cli</span>{" "}
                 — each with its own syntax, its own gotchas, its own documentation
                 rabbit hole. And you repeat the same lookup in every environment.
               </p>
@@ -195,14 +202,14 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
       <section id="features" className="px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <SectionTitle title="Everything you need. Nothing you don't." />
-          <p className="mx-auto mt-5 max-w-3xl text-center text-[#E3D7C8]/80">
+          <p className="mx-auto mt-5 max-w-3xl text-center text-[var(--landing-muted)] transition-colors duration-500">
             A focused tool that does one job well: get your data from A to B
             without the ceremony.
           </p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-2">
             <InfoCard
-              icon={<Zap className="h-5 w-5 text-[#C98A3D]" />}
+              icon={<Zap className="h-5 w-5 text-[var(--landing-accent)] transition-colors duration-500" />}
               title="Copy source → target in one flow"
               description="Move data between databases of the same engine with a guided, form-based interface. No CLI. No docs tab."
               bullets={[
@@ -211,7 +218,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
               ]}
             />
             <InfoCard
-              icon={<ShieldCheck className="h-5 w-5 text-[#C98A3D]" />}
+              icon={<ShieldCheck className="h-5 w-5 text-[var(--landing-accent)] transition-colors duration-500" />}
               title="Instant backup, no commands needed"
               description="Download a compressed zip of your source data before risky changes, audits, or handoffs — straight from the config screen."
               bullets={[
@@ -220,7 +227,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
               ]}
             />
             <InfoCard
-              icon={<BarChart2 className="h-5 w-5 text-[#C98A3D]" />}
+              icon={<BarChart2 className="h-5 w-5 text-[var(--landing-accent)] transition-colors duration-500" />}
               title="Live progress you can actually trust"
               description="Real-time status updates and log output while the migration runs — so you know it worked before you close the tab."
               bullets={[
@@ -229,7 +236,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
               ]}
             />
             <InfoCard
-              icon={<Layers className="h-5 w-5 text-[#C98A3D]" />}
+              icon={<Layers className="h-5 w-5 text-[var(--landing-accent)] transition-colors duration-500" />}
               title="One UI for four database engines"
               description="MongoDB, PostgreSQL, MySQL, and Redis all share the same clean workflow. Onboard once, use everywhere."
               bullets={[
@@ -245,7 +252,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
       <section id="how-it-works" className="px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <SectionTitle title="Up and running in three steps" />
-          <p className="mx-auto mt-5 max-w-3xl text-center text-[#E3D7C8]/80">
+          <p className="mx-auto mt-5 max-w-3xl text-center text-[var(--landing-muted)] transition-colors duration-500">
             No setup. No config files. No surprises.
           </p>
 
@@ -273,7 +280,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
       <section className="px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <SectionTitle title="What developers are saying" />
-          <p className="mx-auto mt-5 max-w-3xl text-center text-[#E3D7C8]/80">
+          <p className="mx-auto mt-5 max-w-3xl text-center text-[var(--landing-muted)] transition-colors duration-500">
             Used by developers who'd rather ship features than memorize CLI flags.
           </p>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
@@ -298,14 +305,14 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
 
       {/* Final CTA */}
       <section className="px-6 py-24">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-[#2A1D16] bg-[#110C0A] p-12 text-center shadow-[0_32px_80px_-24px_rgba(0,0,0,0.8)]">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#D8B788]">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-card)] p-12 text-center shadow-[0_32px_80px_-24px_var(--landing-shadow)] transition-colors duration-500">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--landing-accent)] transition-colors duration-500">
             Free forever · Open source · No account needed
           </p>
           <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
             Ready to move your data?
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-[#E3D7C8]/75">
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-[var(--landing-muted)] transition-colors duration-500">
             No install, no signup. Open the app, paste your connection strings,
             and your migration is running in under a minute.
           </p>
@@ -313,7 +320,7 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
             <Button
               onClick={onStart}
               size="lg"
-              className="h-12 rounded-md bg-[#C98A3D] px-10 text-[#120B07] hover:bg-[#D49A54]"
+              className="h-12 rounded-md bg-[var(--landing-accent)] px-10 text-[var(--landing-accent-text)] transition-colors duration-300 hover:bg-[var(--landing-accent-hover)]"
             >
               Launch the App
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -323,17 +330,17 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#2A1D16] bg-[#080504] px-6 py-12">
+      <footer className="border-t border-[var(--landing-border)] bg-[var(--landing-bg)] px-6 py-12 transition-colors duration-500">
         <div className="mx-auto max-w-5xl">
           <div className="flex flex-col items-center justify-between gap-8 md:flex-row md:gap-4">
             <div className="flex flex-col items-center gap-2 md:items-start">
               <div className="flex items-center gap-2">
                 <img src="/logo.svg" alt="" className="h-7 w-7 rounded-md" />
-                <span className="text-lg font-bold tracking-tight text-[#F5EFE8]">
+                <span className="text-lg font-bold tracking-tight text-[var(--landing-text)] transition-colors duration-500">
                   DB Mover
                 </span>
               </div>
-              <p className="text-sm text-[#E3D7C8]/50">
+              <p className="text-sm text-[var(--landing-subtle)] transition-colors duration-500">
                 Open source database migration and backup tool.
               </p>
             </div>
@@ -343,25 +350,25 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
                 href={`https://github.com/${REPO}`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-sm font-medium text-[#E3D7C8]/70 transition-colors hover:text-[#F5EFE8]"
+                className="text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
               >
                 GitHub
               </a>
               <a
                 href="#"
-                className="text-sm font-medium text-[#E3D7C8]/70 transition-colors hover:text-[#F5EFE8]"
+                className="text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
               >
                 Documentation
               </a>
               <a
                 href="#"
-                className="text-sm font-medium text-[#E3D7C8]/70 transition-colors hover:text-[#F5EFE8]"
+                className="text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
               >
                 Privacy Policy
               </a>
             </div>
 
-            <p className="text-sm text-[#E3D7C8]/40">
+            <p className="text-sm text-[var(--landing-subtle)] transition-colors duration-500">
               © {new Date().getFullYear()} DB Mover. MIT License.
             </p>
           </div>
@@ -388,20 +395,20 @@ function FeedbackCard({ name, role, content }: IFeedbackCardProps) {
     .toUpperCase();
 
   return (
-    <article className="relative flex flex-col justify-between rounded-xl border border-[#2A1D16] bg-[#110C0A] p-7 shadow-sm transition-all hover:border-[#4E3627]">
+    <article className="relative flex flex-col justify-between rounded-xl border border-[var(--landing-border)] bg-[var(--landing-card)] p-7 shadow-sm transition-all duration-500 hover:border-[var(--landing-border-strong)]">
       <div>
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1C130E] text-xs font-bold text-[#D8B788]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--landing-card-soft)] text-xs font-bold text-[var(--landing-accent)] transition-colors duration-500">
             {avatarText}
           </div>
           <div className="overflow-hidden">
-            <p className="truncate text-sm font-semibold text-[#F5EFE8]">
+            <p className="truncate text-sm font-semibold text-[var(--landing-text)] transition-colors duration-500">
               {name}
             </p>
-            <p className="truncate text-xs text-[#E3D7C8]/60">{role}</p>
+            <p className="truncate text-xs text-[var(--landing-subtle)] transition-colors duration-500">{role}</p>
           </div>
         </div>
-        <p className="text-sm italic leading-relaxed text-[#E3D7C8]/90">
+        <p className="text-sm italic leading-relaxed text-[var(--landing-muted)] transition-colors duration-500">
           "{content}"
         </p>
       </div>
@@ -418,21 +425,21 @@ interface IInfoCardProps {
 
 function InfoCard({ icon, title, description, bullets }: IInfoCardProps) {
   return (
-    <article className="rounded-xl border border-[#2A1D16] bg-[#110C0A] p-7 shadow-[0_18px_50px_-28px_rgba(0,0,0,0.7)]">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1C130E]">
+    <article className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-card)] p-7 shadow-[0_18px_50px_-28px_var(--landing-shadow)] transition-colors duration-500">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--landing-card-soft)] transition-colors duration-500">
         {icon}
       </div>
       <h3 className="mt-5 text-xl font-semibold">{title}</h3>
-      <p className="mt-3 text-sm leading-relaxed text-[#E3D7C8]/80">
+      <p className="mt-3 text-sm leading-relaxed text-[var(--landing-muted)] transition-colors duration-500">
         {description}
       </p>
       <div className="mt-5 space-y-2">
         {bullets.map((bullet) => (
           <div
             key={bullet}
-            className="flex items-start gap-2 text-sm text-[#EADFCF]"
+            className="flex items-start gap-2 text-sm text-[var(--landing-text)] transition-colors duration-500"
           >
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#C98A3D]" />
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--landing-accent)] transition-colors duration-500" />
             <span>{bullet}</span>
           </div>
         ))}
@@ -449,12 +456,12 @@ interface IStepCardProps {
 
 function StepCard({ step, title, description }: IStepCardProps) {
   return (
-    <article className="rounded-xl border border-[#2A1D16] bg-[#110C0A] p-7">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#D8B788]">
+    <article className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-card)] p-7 transition-colors duration-500">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--landing-accent)] transition-colors duration-500">
         {step}
       </p>
       <h3 className="mt-3 text-xl font-semibold">{title}</h3>
-      <p className="mt-3 text-sm leading-relaxed text-[#E3D7C8]/80">
+      <p className="mt-3 text-sm leading-relaxed text-[var(--landing-muted)] transition-colors duration-500">
         {description}
       </p>
     </article>
