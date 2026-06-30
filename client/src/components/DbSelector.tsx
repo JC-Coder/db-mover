@@ -1,20 +1,21 @@
-import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { DatabaseBrand } from "@/components/DatabaseBrand";
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
-interface DbSelectorProps {
+interface IDbSelectorProps {
   onSelect: (db: string) => void;
   selected?: string;
 }
 
 const DATABASES = [
-  { id: 'mongodb', name: 'MongoDB' },
-  { id: 'postgres', name: 'PostgreSQL' },
-  { id: 'mysql', name: 'MySQL' },
-  { id: 'redis', name: 'Redis' },
-  { id: 'firebase', name: 'Firebase' },
+  { id: "mongodb", name: "MongoDB" },
+  { id: "postgres", name: "PostgreSQL" },
+  { id: "mysql", name: "MySQL" },
+  { id: "redis", name: "Redis" },
+  { id: "firebase", name: "Firebase" },
 ];
 
-export function DbSelector({ onSelect, selected }: DbSelectorProps) {
+export function DbSelector({ onSelect, selected }: IDbSelectorProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-10">
       <motion.div
@@ -35,7 +36,7 @@ export function DbSelector({ onSelect, selected }: DbSelectorProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="flex flex-wrap justify-center gap-4"
+        className="grid w-full max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5"
       >
         {DATABASES.map((db) => {
           const isSelected = selected === db.id;
@@ -44,13 +45,28 @@ export function DbSelector({ onSelect, selected }: DbSelectorProps) {
               key={db.id}
               onClick={() => onSelect(db.id)}
               className={cn(
-                "px-8 py-3.5 rounded-full text-base font-medium border transition-all duration-200",
+                "group flex h-36 flex-col items-center justify-center gap-4 rounded-xl px-5 py-5 text-base font-medium transition-all duration-200",
                 isSelected
-                  ? "bg-[#C98A3D] border-[#C98A3D] text-[#1D130C]"
-                  : "bg-[#0E0A07] border-[#2A1C12] text-[#E3D7C8]/70 hover:border-[#6A4B36] hover:text-[#F5EFE8] hover:bg-[#2B2018]"
+                  ? "bg-[#C98A3D] text-[#1D130C] shadow-[0_18px_45px_-28px_rgba(201,138,61,0.9)]"
+                  : "bg-[#0E0A07]/70 text-[#E3D7C8]/70 hover:bg-[#1A120D] hover:text-[#F5EFE8]"
               )}
             >
-              {db.name}
+              <span
+                className={cn(
+                  "flex h-16 w-16 items-center justify-center rounded-lg transition-transform duration-200",
+                  isSelected
+                    ? "scale-105 bg-[#1D130C]/10"
+                    : "bg-transparent group-hover:scale-105",
+                )}
+              >
+                <DatabaseBrand
+                  db={db.id}
+                  theme={isSelected ? "light" : "dark"}
+                  variant="icon"
+                  className="h-10 w-10"
+                />
+              </span>
+              <span>{db.name}</span>
             </button>
           );
         })}

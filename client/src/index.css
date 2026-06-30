@@ -77,4 +77,24 @@
     pointer-events: none;
     border-radius: 100%;
   }
+
+  .animate-logo-marquee {
+    animation: logo-marquee 22s linear infinite;
+  }
+}
+
+@keyframes logo-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(calc(-50% - 1.5rem));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-logo-marquee {
+    animation: none;
+  }
 }
