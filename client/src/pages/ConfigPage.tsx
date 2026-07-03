@@ -5,18 +5,13 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
+import { IBrowseConfig, ICopyConfig, IDownloadConfig } from "@/types/browser";
 
 export function ConfigPage() {
   const { dbType } = useParams<{ dbType: string }>();
   const navigate = useNavigate();
 
-  const handleStartCopy = async (config: {
-		sourceUri: string;
-		targetUri: string;
-		targetCredent?: string;
-		sourceCredent?: string;
-		firebaseType?: string;
-  }) => {
+  const handleStartCopy = async (config: ICopyConfig) => {
 		try {
 			const res = await api.post('/migrate/start', {
 				type: 'copy',
@@ -48,19 +43,27 @@ sessionStorage.setItem(
 				description: 'Your data is being transferred securely.',
 			});
 			navigate(`/migration/${jobId}`);
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error(err);
-			const msg = err.response?.data?.error || 'Failed to start migration job.';
+			const msg =
+				typeof err === "object" &&
+				err !== null &&
+				"response" in err &&
+				typeof err.response === "object" &&
+				err.response !== null &&
+				"data" in err.response &&
+				typeof err.response.data === "object" &&
+				err.response.data !== null &&
+				"error" in err.response.data &&
+				typeof err.response.data.error === "string"
+					? err.response.data.error
+					: 'Failed to start migration job.';
 			toast.error('Migration failed', { description: msg });
 			throw err; // Re-throw to let form handle loading state
 		}
   };
 
-  const handleStartDownload = async (config: {
-		sourceUri: string;
-		credent?: any;
-		type?: string;
-  }) => {
+  const handleStartDownload = async (config: IDownloadConfig) => {
 		const promise = async () => {
 			const response = await api.post(
 				'/download',
@@ -91,6 +94,19 @@ sessionStorage.setItem(
 		});
   };
 
+  const handleStartBrowse = (config: IBrowseConfig) => {
+		sessionStorage.setItem(
+			`browser_credentials_${dbType}`,
+			JSON.stringify({
+				sourceUri: config.sourceUri,
+				credent: config.credent,
+				type: config.type,
+				dbType: dbType,
+			})
+		);
+		navigate(`/browser/${dbType}`);
+  };
+
   return (
     <div className="min-h-screen bg-[var(--landing-bg)] text-[var(--landing-text)] transition-colors duration-500 px-4 sm:px-6 pt-6 pb-24">
       <div className="mb-8 flex items-center justify-between">
@@ -116,6 +132,7 @@ sessionStorage.setItem(
           dbType={dbType || "mongodb"}
           onStartCopy={handleStartCopy}
           onStartDownload={handleStartDownload}
+          onStartBrowse={handleStartBrowse}
         />
       </motion.div>
     </div>

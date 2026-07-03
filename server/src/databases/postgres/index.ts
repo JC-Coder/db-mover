@@ -2,12 +2,33 @@ import { IDatabaseAdapter } from "../types";
 import { verifyConnection } from "./connection";
 import { runCopyMigration } from "./migration";
 import { runDownload as runPostgresDownload } from "./download";
+import {
+  listBrowserObjects as listPostgresBrowserObjects,
+  previewBrowserObject as previewPostgresBrowserObject,
+} from "./browser";
 import { Writable } from "stream";
 import archiver from "archiver";
+import {
+  IBrowserConnection,
+  IBrowserObject,
+  IBrowserPreview,
+  IBrowserPreviewRequest,
+} from "../types";
 
 export class PostgresAdapter implements IDatabaseAdapter {
   async verifyConnection(uri: string): Promise<boolean> {
     return verifyConnection(uri);
+  }
+
+  async listBrowserObjects(connection: IBrowserConnection): Promise<IBrowserObject[]> {
+    return listPostgresBrowserObjects(connection);
+  }
+
+  async previewBrowserObject(
+    connection: IBrowserConnection,
+    request: IBrowserPreviewRequest,
+  ): Promise<IBrowserPreview> {
+    return previewPostgresBrowserObject(connection, request);
   }
 
   async runCopyMigration(

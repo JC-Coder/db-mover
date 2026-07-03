@@ -16,18 +16,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Uploader } from './ui/uploader';
 import { CheckBox } from './ui/checkbox';
 import { cn } from "@/lib/utils";
+import { DatabaseMode, IBrowseConfig, ICopyConfig, IDownloadConfig, IFirebaseConfig } from "@/types/browser";
 
-interface DatabaseConfigFormProps {
+interface IDatabaseConfigFormProps {
 	dbType: string;
-	onStartCopy: (config: any) => void;
-	onStartDownload: (config: any, credent?: any, type?: string) => void;
+	onStartCopy: (config: ICopyConfig) => void | Promise<void>;
+	onStartDownload: (config: IDownloadConfig) => void | Promise<void>;
+	onStartBrowse?: (config: IBrowseConfig) => void | Promise<void>;
 }
 
-interface FirebaseConfig {
-	projectId: string;
-	clientEmail: string;
-	privateKey: string;
-}
 type FirebaseMode = 'rtdb' | 'firestore';
 
 const getPlaceholder = (dbType: string): string => {
@@ -62,7 +59,7 @@ const loadDraft = (dbType: string) => {
 	} catch { return null; }
 };
 
-const saveDraft = (dbType: string, data: { mode: string; sourceUri: string; targetUri: string }) => {
+const saveDraft = (dbType: string, data: { mode: DatabaseMode; sourceUri: string; targetUri: string }) => {
 	try { sessionStorage.setItem(DRAFT_KEY(dbType), JSON.stringify(data)); } catch { }
 };
 
@@ -169,8 +166,8 @@ function GuideModal({ dbType, onClose }: { dbType: string; onClose: () => void }
 	);
 }
 
-export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: DatabaseConfigFormProps) {
-	const [mode, setMode] = useState<'copy' | 'download'>(() => loadDraft(dbType)?.mode ?? 'copy');
+export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onStartBrowse }: IDatabaseConfigFormProps) {
+	const [mode, setMode] = useState<DatabaseMode>(() => loadDraft(dbType)?.mode ?? 'copy');
 	const [sourceUri, setSourceUri] = useState(() => loadDraft(dbType)?.sourceUri ?? '');
 	const [targetUri, setTargetUri] = useState(() => loadDraft(dbType)?.targetUri ?? '');
 	const [loading, setLoading] = useState(false);
@@ -182,8 +179,8 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 		return !!(d?.sourceUri || d?.targetUri);
 	});
 
-	const [firebaseSourceConfig, setFirebaseSourceConfig] = useState<FirebaseConfig | null>(null);
-	const [firebaseTargetConfig, setFirebaseTargetConfig] = useState<FirebaseConfig | null>(null);
+	const [firebaseSourceConfig, setFirebaseSourceConfig] = useState<IFirebaseConfig | null>(null);
+	const [firebaseTargetConfig, setFirebaseTargetConfig] = useState<IFirebaseConfig | null>(null);
 	const [firebaseSourceError, setFirebaseSourceError] = useState<string | null>(null);
 	const [firebaseTargetError, setFirebaseTargetError] = useState<string | null>(null);
 	const [firebaseMode, setFirebaseMode] = useState<FirebaseMode>('rtdb');
@@ -209,23 +206,37 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 
 		try {
 			const text = await file.text();
-			let json: any;
-			try { json = JSON.parse(text); } catch { throw new Error('Invalid JSON format'); }
+			let json: Record<string, unknown>;
+			try {
+				const parsed = JSON.parse(text) as unknown;
+				if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+					throw new Error('Invalid JSON format');
+				}
+				json = parsed as Record<string, unknown>;
+			} catch { throw new Error('Invalid JSON format'); }
 
 			const requiredFields = ['project_id', 'private_key', 'client_email'];
 			for (const field of requiredFields) {
 				if (!json[field] || typeof json[field] !== 'string')
 					throw new Error(`Missing or invalid field: ${field}`);
 			}
-			if (!json.private_key.includes('BEGIN PRIVATE KEY')) throw new Error('Invalid private key format');
-			if (!json.client_email.includes('@')) throw new Error('Invalid client email');
+			const projectId = json.project_id as string;
+			const privateKey = json.private_key as string;
+			const clientEmail = json.client_email as string;
+			if (!privateKey.includes('BEGIN PRIVATE KEY')) throw new Error('Invalid private key format');
+			if (!clientEmail.includes('@')) throw new Error('Invalid client email');
 
-			const normalized = { projectId: json.project_id, clientEmail: json.client_email, privateKey: json.private_key };
+			const normalized = {
+				projectId,
+				clientEmail,
+				privateKey,
+			};
 			if (type === 'upload-source') setFirebaseSourceConfig(normalized);
 			else setFirebaseTargetConfig(normalized);
-		} catch (err: any) {
-			if (type === 'upload-source') { setFirebaseSourceConfig(null); setFirebaseSourceError(err.message || 'Invalid Firebase credentials'); }
-			else { setFirebaseTargetConfig(null); setFirebaseTargetError(err.message || 'Invalid Firebase credentials'); }
+		} catch (err: unknown) {
+			const message = err instanceof Error ? err.message : 'Invalid Firebase credentials';
+			if (type === 'upload-source') { setFirebaseSourceConfig(null); setFirebaseSourceError(message); }
+			else { setFirebaseTargetConfig(null); setFirebaseTargetError(message); }
 		}
 	};
 
@@ -288,12 +299,22 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 					}
 				}
 				await onStartCopy({ sourceUri, targetUri, firebaseType: firebaseMode, sourceCredent: firebaseSourceConfig, targetCredent: firebaseTargetConfig });
-			} else {
+			} else if (mode === 'download') {
 				if (dbType === 'firebase' && !firebaseSourceConfig) {
 					toast.error('Missing credentials', { description: 'Upload your Firebase Service Account JSON.' });
 					setLoading(false); return;
 				}
 				await onStartDownload({ sourceUri, credent: firebaseSourceConfig, type: firebaseMode });
+			} else if (mode === 'browse') {
+				if (dbType === 'firebase' && !firebaseSourceConfig) {
+					toast.error('Missing credentials', { description: 'Upload your Firebase Service Account JSON.' });
+					setLoading(false); return;
+				}
+				if (onStartBrowse) {
+					await onStartBrowse({ sourceUri, credent: firebaseSourceConfig, type: firebaseMode });
+				} else {
+					toast.error('Browse mode not supported yet.');
+				}
 			}
 		} catch (err) {
 			console.error(err);
@@ -302,7 +323,7 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 		}
 	};
 
-	const FileUploader = ({ id, error, config }: { id: string; error: string | null; config: FirebaseConfig | null }) => {
+	const FileUploader = ({ id, error, config }: { id: string; error: string | null; config: IFirebaseConfig | null }) => {
 		if (dbType === 'firebase')
 			return <Uploader id={id} handleFirebaseFile={handleFirebaseFile} firebaseError={error} firebaseConfig={config} />;
 		return null;
@@ -360,9 +381,8 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 					)}
 				</div>
 
-				{/* Mode toggle */}
 				<div className="mb-8 flex rounded-xl border border-[var(--landing-border)] bg-[var(--landing-card)] p-1">
-					{(['copy', 'download'] as const).map((m) => (
+					{(['copy', 'download', 'browse'] as const).map((m) => (
 						<button
 							key={m}
 							type="button"
@@ -374,8 +394,8 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 									: "text-[var(--landing-subtle)] hover:text-[var(--landing-text)]"
 							)}
 						>
-							{m === 'copy' ? <Copy className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
-							{m === 'copy' ? 'Copy to database' : 'Download backup'}
+							{m === 'copy' ? <Copy className="h-3.5 w-3.5" /> : m === 'download' ? <Download className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+							{m === 'copy' ? 'Copy' : m === 'download' ? 'Download' : 'Browse'}
 						</button>
 					))}
 				</div>
@@ -488,6 +508,24 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 						)}
 					</AnimatePresence>
 
+					{/* Browse info banner */}
+					<AnimatePresence>
+						{mode === 'browse' && (
+							<motion.div
+								initial={{ opacity: 0, height: 0 }}
+								animate={{ opacity: 1, height: 'auto' }}
+								exit={{ opacity: 0, height: 0 }}
+								className="overflow-hidden"
+							>
+								<div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-card)] px-4 py-3">
+									<p className="text-sm text-[var(--landing-muted)] leading-relaxed">
+										Explore your database tables and collections directly from your browser.
+									</p>
+								</div>
+							</motion.div>
+						)}
+					</AnimatePresence>
+
 					{/* Submit */}
 					<button
 						type="submit"
@@ -498,8 +536,10 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload }: Dat
 							<><Loader2 className="h-4 w-4 animate-spin" /> Processing…</>
 						) : mode === 'copy' ? (
 							<><Play className="h-4 w-4 fill-current" /> Start migration</>
-						) : (
+						) : mode === 'download' ? (
 							<><Download className="h-4 w-4" /> Download backup</>
+						) : (
+							<><Eye className="h-4 w-4" /> Open Data Browser</>
 						)}
 					</button>
 				</form>

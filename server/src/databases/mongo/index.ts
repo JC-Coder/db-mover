@@ -2,12 +2,33 @@ import { IDatabaseAdapter } from "../types";
 import { verifyConnection } from "./connection";
 import { runCopyMigration } from "./migration";
 import { runDownload as runMongoDownload } from "./download";
+import {
+  listBrowserObjects as listMongoBrowserObjects,
+  previewBrowserObject as previewMongoBrowserObject,
+} from "./browser";
 import { Writable } from "stream";
 import archiver from "archiver";
+import {
+  IBrowserConnection,
+  IBrowserObject,
+  IBrowserPreview,
+  IBrowserPreviewRequest,
+} from "../types";
 
 export class MongoAdapter implements IDatabaseAdapter {
   async verifyConnection(uri: string): Promise<boolean> {
     return verifyConnection(uri);
+  }
+
+  async listBrowserObjects(connection: IBrowserConnection): Promise<IBrowserObject[]> {
+    return listMongoBrowserObjects(connection);
+  }
+
+  async previewBrowserObject(
+    connection: IBrowserConnection,
+    request: IBrowserPreviewRequest,
+  ): Promise<IBrowserPreview> {
+    return previewMongoBrowserObject(connection, request);
   }
 
   async runCopyMigration(
