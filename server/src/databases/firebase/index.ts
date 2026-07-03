@@ -4,7 +4,17 @@ import archiver from "archiver";
 import { verifyConnection } from "./connection";
 import { runDownload as runFirebaseDownload } from "./download";
 import { runCopyMigration } from "./migration";
+import {
+  listBrowserObjects as listFirebaseBrowserObjects,
+  previewBrowserObject as previewFirebaseBrowserObject,
+} from "./browser";
 import { ServiceAccount } from "firebase-admin";
+import {
+  IBrowserConnection,
+  IBrowserObject,
+  IBrowserPreview,
+  IBrowserPreviewRequest,
+} from "../types";
 
 export class FirebaseAdapter implements IDatabaseAdapter {
   async verifyConnection(uri: string, credential: ServiceAccount): Promise<boolean> {
@@ -12,6 +22,17 @@ export class FirebaseAdapter implements IDatabaseAdapter {
       throw new Error("credentials are needed");
     }
     return verifyConnection(uri, credential);
+  }
+
+  async listBrowserObjects(connection: IBrowserConnection): Promise<IBrowserObject[]> {
+    return listFirebaseBrowserObjects(connection);
+  }
+
+  async previewBrowserObject(
+    connection: IBrowserConnection,
+    request: IBrowserPreviewRequest,
+  ): Promise<IBrowserPreview> {
+    return previewFirebaseBrowserObject(connection, request);
   }
 
   async runCopyMigration(

@@ -2,12 +2,33 @@ import { IDatabaseAdapter } from "../types";
 import { verifyConnection } from "./connection";
 import { runCopyMigration } from "./migration";
 import { runDownload } from "./download";
+import {
+  listBrowserObjects as listRedisBrowserObjects,
+  previewBrowserObject as previewRedisBrowserObject,
+} from "./browser";
 import { Writable } from "stream";
 import archiver from "archiver";
+import {
+  IBrowserConnection,
+  IBrowserObject,
+  IBrowserPreview,
+  IBrowserPreviewRequest,
+} from "../types";
 
 export class RedisAdapter implements IDatabaseAdapter {
   async verifyConnection(uri: string): Promise<boolean> {
     return verifyConnection(uri);
+  }
+
+  async listBrowserObjects(connection: IBrowserConnection): Promise<IBrowserObject[]> {
+    return listRedisBrowserObjects(connection);
+  }
+
+  async previewBrowserObject(
+    connection: IBrowserConnection,
+    request: IBrowserPreviewRequest,
+  ): Promise<IBrowserPreview> {
+    return previewRedisBrowserObject(connection, request);
   }
 
   async runCopyMigration(

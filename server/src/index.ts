@@ -7,6 +7,11 @@ import { logger } from "hono/logger";
 import { stream, streamSSE } from "hono/streaming";
 import { createJob, getJob, Job, addLog, updateJob } from "./lib/jobManager";
 import { runCopyMigration, runDownload } from "./services/migration";
+import {
+  BrowserServiceError,
+  listBrowserObjects,
+  previewBrowserObject,
+} from "./services/browser";
 import { getDatabaseAdapter, DatabaseType } from "./databases";
 import archiver from "archiver";
 
@@ -76,6 +81,38 @@ app.post("/api/migrate/verify", async (c) => {
       { success: false, message: `Verification failed: ${errorMessage}` },
       500,
     );
+  }
+});
+
+app.post("/api/browser/schema", async (c) => {
+  try {
+    const body = (await c.req.json()) as Record<string, unknown>;
+    const objects = await listBrowserObjects(body);
+    return c.json({ objects });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (error instanceof BrowserServiceError) {
+      return c.json({ error: message }, error.status);
+    }
+
+    console.error("Browser schema error:", error);
+    return c.json({ error: "Failed to load database schema" }, 500);
+  }
+});
+
+app.post("/api/browser/preview", async (c) => {
+  try {
+    const body = (await c.req.json()) as Record<string, unknown>;
+    const preview = await previewBrowserObject(body);
+    return c.json(preview);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (error instanceof BrowserServiceError) {
+      return c.json({ error: message }, error.status);
+    }
+
+    console.error("Browser preview error:", error);
+    return c.json({ error: "Failed to preview database object" }, 500);
   }
 });
 

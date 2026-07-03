@@ -5,6 +5,7 @@ import { SelectPage } from "@/pages/SelectPage";
 import { ConfigPage } from "@/pages/ConfigPage";
 import { MigrationPage } from "@/pages/MigrationPage";
 import { StatsPage } from "@/pages/StatsPage";
+import { BrowserPage } from "@/pages/BrowserPage";
 import { LandingPageV2 } from "@/components/LandingPageV2";
 import { ThemeProvider, THEME_VARS, useTheme } from "@/lib/theme";
 
@@ -32,6 +33,7 @@ function AppRoutes() {
             <Route path="/config/:dbType" element={<ConfigPage />} />
             <Route path="/stats" element={<StatsPage />} />
             <Route path="/migration/:jobId" element={<MigrationPage />} />
+            <Route path="/browser/:dbType" element={<BrowserPage />} />
           </Routes>
         </AnimatePresence>
       </main>
