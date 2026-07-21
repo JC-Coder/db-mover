@@ -1,10 +1,39 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import confetti from "canvas-confetti";
 import { MigrationTerminal } from "@/components/MigrationTerminal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
+
+const fireConfetti = () => {
+  // Center wide burst
+  confetti({
+    particleCount: 90,
+    spread: 110,
+    origin: { y: 0.6 },
+    zIndex: 9999,
+  });
+
+  // Left side cannon
+  confetti({
+    particleCount: 45,
+    angle: 60,
+    spread: 75,
+    origin: { x: 0, y: 0.7 },
+    zIndex: 9999,
+  });
+
+  // Right side cannon
+  confetti({
+    particleCount: 45,
+    angle: 120,
+    spread: 75,
+    origin: { x: 1, y: 0.7 },
+    zIndex: 9999,
+  });
+};
 
 const parseStoredMigrationConfig = (
   raw: string,
@@ -80,6 +109,16 @@ export function MigrationPage() {
       toast.error("Retry failed", { description: msg });
     }
   };
+
+  const hasTriggeredCompletion = useRef(false);
+
+  useEffect(() => {
+    if (status === "completed" && !hasTriggeredCompletion.current) {
+      hasTriggeredCompletion.current = true;
+      fireConfetti();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [status]);
 
   useEffect(() => {
     if (!jobId) return;
