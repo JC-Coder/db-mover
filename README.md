@@ -141,7 +141,7 @@ Connection strings and service‑account keys stay in your browser’s session s
 2. Install dependencies (root, client, and server):
    ```bash
    cd db-mover
-   npm install
+   npm run install:all
    ```
 3. Start the development servers:
    ```bash
