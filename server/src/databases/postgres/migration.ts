@@ -507,10 +507,22 @@ export const runCopyMigration = async (
         const BATCH_SIZE = 1000;
         let offset = 0;
         let batchRows = 0;
+        const jsonTypes = new Set(["json", "jsonb", "json[]", "jsonb[]"]);
+        const selectColumns = columnInfo.rows
+          .map((col) => {
+            const columnName = quoteIdentifier(col.column_name as string);
+            const fullType = col.full_type as string;
+
+            // Preserve JSON text so pg does not reinterpret arrays or scalar JSON values as other parameter types.
+            return jsonTypes.has(fullType)
+              ? `${columnName}::text AS ${columnName}`
+              : columnName;
+          })
+          .join(", ");
 
         while (true) {
           const rows = await sourceClient.query(
-            `SELECT * FROM "${tableName}" LIMIT $1 OFFSET $2`,
+            `SELECT ${selectColumns} FROM "${tableName}" LIMIT $1 OFFSET $2`,
             [BATCH_SIZE, offset]
           );
 
