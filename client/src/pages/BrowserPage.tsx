@@ -1,8 +1,10 @@
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Braces,
+  Check,
+  ChevronDown,
   ChevronRight,
   Copy,
   Database,
@@ -44,6 +46,7 @@ const DB_NAMES: Record<string, string> = {
 };
 
 const PAGE_SIZE = 50;
+const REDIS_DATABASES = Array.from({ length: 16 }, (_, index) => index);
 const INSPECTOR_MIN_WIDTH = 320;
 const INSPECTOR_DEFAULT_WIDTH = 340;
 const INSPECTOR_EXPANDED_WIDTH = 680;
@@ -65,6 +68,167 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 
   return fallback;
 };
+
+const getRedisDatabase = (sourceUri: string) => {
+  try {
+    const pathname = new URL(sourceUri).pathname;
+    const match = pathname.match(/^\/(\d+)\/?$/);
+    const database = match ? Number(match[1]) : 0;
+    return Number.isSafeInteger(database) && database >= 0 ? database : 0;
+  } catch {
+    return 0;
+  }
+};
+
+const setRedisDatabase = (sourceUri: string, database: number): string | null => {
+  try {
+    const url = new URL(sourceUri);
+    url.pathname = `/${database}`;
+    return url.toString();
+  } catch {
+    return null;
+  }
+};
+
+interface IRedisDatabasePickerProps {
+  database: number;
+  onSelect: (database: number) => void;
+}
+
+function RedisDatabasePicker({ database, onSelect }: IRedisDatabasePickerProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [highlightedDatabase, setHighlightedDatabase] = useState(database);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const databaseOptions = REDIS_DATABASES.includes(database)
+    ? REDIS_DATABASES
+    : [...REDIS_DATABASES, database].sort((left, right) => left - right);
+
+  useEffect(() => {
+    setHighlightedDatabase(database);
+  }, [database]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    menuRef.current?.focus();
+
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [isOpen]);
+
+  const closePicker = () => {
+    setIsOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const selectDatabase = (nextDatabase: number) => {
+    onSelect(nextDatabase);
+    closePicker();
+  };
+
+  const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const currentIndex = databaseOptions.indexOf(highlightedDatabase);
+
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      event.preventDefault();
+      setHighlightedDatabase(databaseOptions[(currentIndex + 1) % databaseOptions.length]);
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      event.preventDefault();
+      setHighlightedDatabase(databaseOptions[(currentIndex - 1 + databaseOptions.length) % databaseOptions.length]);
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      selectDatabase(highlightedDatabase);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closePicker();
+    }
+  };
+
+  return (
+    <div ref={pickerRef} className="relative">
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setIsOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setHighlightedDatabase(database);
+            setIsOpen(true);
+          }
+        }}
+        className={cn(
+          "flex h-8 items-center gap-2 border px-2.5 font-mono text-xs transition-colors",
+          isOpen
+            ? "border-cyan-500/60 bg-cyan-500/10 text-cyan-400"
+            : "border-[var(--landing-border)] text-[var(--landing-muted)] hover:bg-[var(--landing-card-soft)] hover:text-[var(--landing-text)]",
+        )}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={`Redis database ${database}`}
+      >
+        <Hash className="h-3.5 w-3.5" />
+        <span>DB {database}</span>
+        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} />
+      </button>
+
+      {isOpen && (
+        <div
+          ref={menuRef}
+          role="listbox"
+          tabIndex={-1}
+          aria-label="Select Redis database"
+          onKeyDown={handleMenuKeyDown}
+          className="absolute right-0 top-full z-50 mt-2 w-48 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-card)] p-2 shadow-2xl shadow-black/30 outline-none"
+        >
+          <div className="mb-2 border-b border-[var(--landing-border)] px-2 pb-2">
+            <p className="text-[11px] font-semibold text-[var(--landing-text)]">Redis database</p>
+            <p className="mt-0.5 text-[10px] text-[var(--landing-subtle)]">Choose the database from your connection URL.</p>
+          </div>
+          <div className="grid grid-cols-4 gap-1">
+            {databaseOptions.map((option) => {
+              const isSelected = option === database;
+              const isHighlighted = option === highlightedDatabase;
+
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onMouseEnter={() => setHighlightedDatabase(option)}
+                  onClick={() => selectDatabase(option)}
+                  className={cn(
+                    "flex h-8 items-center justify-center gap-1 rounded-md font-mono text-xs transition-colors",
+                    isSelected
+                      ? "bg-cyan-500 text-slate-950"
+                      : isHighlighted
+                        ? "bg-[var(--landing-card-soft)] text-[var(--landing-text)]"
+                        : "text-[var(--landing-muted)] hover:bg-[var(--landing-card-soft)] hover:text-[var(--landing-text)]",
+                  )}
+                >
+                  {option}
+                  {isSelected && <Check className="h-3 w-3" />}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 border-t border-[var(--landing-border)] px-2 pt-2 font-mono text-[10px] text-[var(--landing-subtle)]">
+            URL path: /{database}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const getValueKind = (value: unknown) => {
   if (value === null) return "null";
@@ -99,7 +263,11 @@ function RenderValue({ value }: { value: unknown }) {
   }
 
   if (typeof value === "string") {
-    return <span className="font-mono text-xs text-[var(--landing-text)]/85">"{value}"</span>;
+    return (
+      <span className="block max-w-full whitespace-normal break-all font-mono text-xs leading-5 text-[var(--landing-text)]/85">
+        "{value}"
+      </span>
+    );
   }
 
   return (
@@ -241,7 +409,10 @@ function DataTable({ columns, data, offset, onRowClick, selectedRowIndex }: IDat
                   {offset + index + 1}
                 </td>
                 {visibleColumns.map((column) => (
-                  <td key={column} className="max-w-[320px] border-r border-[var(--landing-border)] px-3 py-2 last:border-r-0">
+                  <td
+                    key={column}
+                    className="max-w-[320px] align-top border-r border-[var(--landing-border)] px-3 py-2 last:border-r-0"
+                  >
                     <RenderValue value={row[column]} />
                   </td>
                 ))}
@@ -485,6 +656,40 @@ export function BrowserPage() {
     setOffset((current) => Math.max(current - PAGE_SIZE, 0));
   };
 
+  // Switch Redis databases by changing the URL path and clearing stale browser state.
+  const handleRedisDatabaseChange = (database: number) => {
+    if (!connection || dbType !== "redis" || !Number.isSafeInteger(database) || database < 0) return;
+
+    const nextSourceUri = setRedisDatabase(connection.sourceUri, database);
+    if (!nextSourceUri) {
+      toast.error("Invalid Redis connection string", {
+        description: "Return to configuration and enter a valid Redis URI.",
+      });
+      return;
+    }
+
+    const nextConnection = {
+      ...connection,
+      sourceUri: nextSourceUri,
+    };
+
+    sessionStorage.setItem(`browser_credentials_${dbType}`, JSON.stringify(nextConnection));
+    setObjects([]);
+    setActiveObject(null);
+    setExpandedDbs({});
+    setSchemaSearch("");
+    setRowSearch("");
+    setPreview(null);
+    setOffset(0);
+    setCursor(undefined);
+    setCursorHistory([]);
+    setSelectedRecord(null);
+    setSelectedRecordIndex(null);
+    setIsInspectorExpanded(false);
+    setInspectorWidth(INSPECTOR_DEFAULT_WIDTH);
+    setConnection(nextConnection);
+  };
+
   const canGoNext = Boolean(
     preview && (activeObject?.type === "keyspace" ? preview.nextCursor : preview.nextCursor || preview.rows.length === PAGE_SIZE),
   );
@@ -529,6 +734,12 @@ export function BrowserPage() {
             <div className="hidden items-center gap-2 border border-[var(--landing-border)] px-2.5 py-1 font-mono text-xs text-[var(--landing-muted)] md:flex">
               {preview.elapsedMs}ms
             </div>
+          )}
+          {dbType === "redis" && connection && (
+            <RedisDatabasePicker
+              database={getRedisDatabase(connection.sourceUri)}
+              onSelect={handleRedisDatabaseChange}
+            />
           )}
           <ThemeToggle />
         </div>
