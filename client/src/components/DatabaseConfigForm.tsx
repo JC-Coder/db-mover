@@ -32,7 +32,7 @@ const getPlaceholder = (dbType: string): string => {
 		case 'mongodb': return 'mongodb+srv://user:pass@cluster.host/dbname';
 		case 'postgres': return 'postgresql://user:pass@host:5432/dbname';
 		case 'mysql': return 'mysql://user:pass@host:3306/dbname';
-		case 'redis': return 'redis://:pass@host:6379';
+		case 'redis': return 'redis://:pass@host:6379/0';
 		case 'firebase': return 'https://<databaseid>.firebaseio.com';
 		default: return 'connection string';
 	}
@@ -84,7 +84,7 @@ function GuideModal({ dbType, onClose }: { dbType: string; onClose: () => void }
 		mongodb: 'mongodb+srv://user:pass@cluster.host/dbname',
 		postgres: 'postgresql://user:pass@host:5432/dbname',
 		mysql: 'mysql://user:pass@host:3306/dbname',
-		redis: 'redis://:password@host:6379',
+		redis: 'redis://:password@host:6379/0',
 		firebase: 'https://<database-id>.firebaseio.com',
 	};
 
