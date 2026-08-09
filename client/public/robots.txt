@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://db-mover.jccoder.xyz/sitemap.xml
+Sitemap: https://dbmover.cloud/sitemap.xml
