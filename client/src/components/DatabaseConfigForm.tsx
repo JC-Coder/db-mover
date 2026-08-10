@@ -17,6 +17,7 @@ import { Uploader } from './ui/uploader';
 import { CheckBox } from './ui/checkbox';
 import { cn } from "@/lib/utils";
 import { DatabaseMode, IBrowseConfig, ICopyConfig, IDownloadConfig, IFirebaseConfig } from "@/types/browser";
+import { trackTelemetry } from "@/lib/telemetry";
 
 interface IDatabaseConfigFormProps {
 	dbType: string;
@@ -386,7 +387,13 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onSta
 						<button
 							key={m}
 							type="button"
-							onClick={() => setMode(m)}
+							onClick={() => {
+								setMode(m);
+								trackTelemetry("mode_selected", {
+									databaseType: dbType as "mongodb" | "postgres" | "mysql" | "redis" | "firebase",
+									mode: m === "browse" ? "browser" : m,
+								});
+							}}
 							className={cn(
 								"flex-1 flex items-center justify-center gap-2 rounded-xl py-3 text-base font-medium transition-all duration-200",
 								mode === m

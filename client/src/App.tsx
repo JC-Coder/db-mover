@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AnimatePresence } from "framer-motion";
@@ -8,11 +9,22 @@ import { StatsPage } from "@/pages/StatsPage";
 import { BrowserPage } from "@/pages/BrowserPage";
 import { LandingPageV2 } from "@/components/LandingPageV2";
 import { ThemeProvider, THEME_VARS, useTheme } from "@/lib/theme";
+import { trackAppOpenedOnce, trackTelemetry } from "@/lib/telemetry";
 
 function AppRoutes() {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme } = useTheme();
+
+  useEffect(() => {
+    trackAppOpenedOnce();
+    trackTelemetry("page_viewed");
+  }, [location.pathname]);
+
+  const launchApp = () => {
+    trackTelemetry("landing_cta_clicked");
+    navigate("/select");
+  };
 
   return (
     <div
@@ -27,7 +39,7 @@ function AppRoutes() {
           <Routes location={location} key={location.pathname}>
             <Route
               path="/"
-              element={<LandingPageV2 onStart={() => navigate("/select")} />}
+              element={<LandingPageV2 onStart={launchApp} />}
             />
             <Route path="/select" element={<SelectPage />} />
             <Route path="/config/:dbType" element={<ConfigPage />} />

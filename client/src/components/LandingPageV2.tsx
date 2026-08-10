@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   BarChart2,
   Layers,
+  Menu,
+  X,
 } from "lucide-react";
 
 function GithubIcon({ className }: { className?: string }) {
@@ -31,6 +33,7 @@ const HERO_BRAND_LOOP = [...DATABASE_BRANDS, ...DATABASE_BRANDS];
 
 export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
   const { theme } = useTheme();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-full bg-[var(--landing-bg)] text-[var(--landing-text)] transition-colors duration-500 ease-out">
@@ -57,6 +60,12 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
             >
               How it works
             </a>
+            <Link
+              to="/stats"
+              className="text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
+            >
+              Stats
+            </Link>
             <a
               href={`https://github.com/${REPO}`}
               target="_blank"
@@ -70,6 +79,15 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
 
           <div className="flex shrink-0 items-center gap-2">
             <ThemeToggle />
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--landing-muted)] hover:bg-[var(--landing-card-soft)] hover:text-[var(--landing-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)] md:hidden"
+              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
             <Button
               onClick={onStart}
               size="sm"
@@ -79,6 +97,14 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
             </Button>
           </div>
         </nav>
+        {mobileMenuOpen && (
+          <div className="mt-3 rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-panel)] p-2 shadow-xl backdrop-blur-md md:hidden">
+            <a href="#features" onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center rounded-xl px-4 text-sm font-medium text-[var(--landing-muted)] hover:bg-[var(--landing-card-soft)] hover:text-[var(--landing-text)]">Features</a>
+            <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center rounded-xl px-4 text-sm font-medium text-[var(--landing-muted)] hover:bg-[var(--landing-card-soft)] hover:text-[var(--landing-text)]">How it works</a>
+            <Link to="/stats" onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center rounded-xl px-4 text-sm font-medium text-[var(--landing-muted)] hover:bg-[var(--landing-card-soft)] hover:text-[var(--landing-text)]">Stats</Link>
+            <a href={`https://github.com/${REPO}`} target="_blank" rel="noreferrer" className="flex min-h-11 items-center rounded-xl px-4 text-sm font-medium text-[var(--landing-muted)] hover:bg-[var(--landing-card-soft)] hover:text-[var(--landing-text)]">GitHub</a>
+          </div>
+        )}
       </header>
 
       {/* Hero */}
@@ -346,6 +372,12 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
             </div>
 
             <div className="flex items-center gap-8">
+              <Link
+                to="/stats"
+                className="text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
+              >
+                Stats
+              </Link>
               <a
                 href={`https://github.com/${REPO}`}
                 target="_blank"
@@ -360,12 +392,12 @@ export function LandingPageV2({ onStart }: ISimpleLandingPageProps) {
               >
                 Documentation
               </a>
-              <a
-                href="#"
+              <Link
+                to="/stats#telemetry"
                 className="text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
               >
-                Privacy Policy
-              </a>
+                Telemetry
+              </Link>
             </div>
 
             <p className="text-sm text-[var(--landing-subtle)] transition-colors duration-500">
@@ -481,3 +513,5 @@ function SectionTitle({ title }: ISectionTitleProps) {
     </div>
   );
 }
+import { useState } from "react";
+import { Link } from "react-router-dom";
