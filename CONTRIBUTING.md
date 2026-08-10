@@ -78,4 +78,4 @@ If you find a bug, please create a new issue on GitHub. Include as much detail a
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the project's [CC BY-NC 4.0 License](LICENSE).
+By contributing, you agree that your contributions will be licensed under the project's [MIT License](LICENSE).

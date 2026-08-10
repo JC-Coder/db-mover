@@ -1,6 +1,7 @@
 {
   "name": "db-mover-server",
   "version": "1.0.0",
+  "license": "MIT",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
