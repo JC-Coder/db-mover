@@ -88,7 +88,7 @@ export function MigrationPage() {
       }
 
       // Start new migration with same config
-      const res = await api.post("/migrate/start", config);
+      const res = await api.post("/migrate/start", { ...config, retryOf: jobId });
       const newJobId = res.data.jobId;
       try {
         // Store config for new job

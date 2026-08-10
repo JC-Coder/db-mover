@@ -3,11 +3,15 @@ import { DbSelector } from "@/components/DbSelector";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
+import { trackTelemetry } from "@/lib/telemetry";
 
 export function SelectPage() {
   const navigate = useNavigate();
 
   const handleDbSelect = (db: string) => {
+    if (["mongodb", "postgres", "mysql", "redis", "firebase"].includes(db)) {
+      trackTelemetry("database_selected", { databaseType: db as "mongodb" | "postgres" | "mysql" | "redis" | "firebase" });
+    }
     navigate(`/config/${db}`);
   };
 

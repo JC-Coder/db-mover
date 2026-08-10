@@ -17,7 +17,8 @@
     "ioredis": "^5.9.2",
     "mongodb": "^6.12.0",
     "mysql2": "^3.6.5",
-    "pg": "^8.11.3"
+    "pg": "^8.11.3",
+    "posthog-node": "^5.48.1"
   },
   "devDependencies": {
     "@types/archiver": "^7.0.0",

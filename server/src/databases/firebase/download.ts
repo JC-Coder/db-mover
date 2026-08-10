@@ -20,6 +20,7 @@ export const runDownload = async (
     }
   } catch (error) {
     console.log("Error during download:", error);
+    throw error;
   } finally {
     if (type === "rtdb") {
       await client.database?.app.delete();

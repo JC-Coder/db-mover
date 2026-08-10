@@ -28,7 +28,7 @@ export interface IBrowseConfig {
 }
 
 export interface IBrowserConnectionPayload extends IBrowseConfig {
-  dbType: string;
+  dbType: "mongodb" | "postgres" | "mysql" | "redis" | "firebase";
 }
 
 export interface IBrowserObject {

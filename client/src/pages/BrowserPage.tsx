@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { DatabaseBrand } from "@/components/DatabaseBrand";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import api from "@/lib/api";
+import { trackTelemetry } from "@/lib/telemetry";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import {
@@ -606,10 +607,18 @@ export function BrowserPage() {
 
         if (isMounted) {
           setPreview(response.data);
+          trackTelemetry("browser_preview_loaded", {
+            databaseType: connection.dbType,
+            mode: "browser",
+          });
         }
       } catch (error) {
         if (isMounted) {
           setPreview(null);
+          trackTelemetry("browser_preview_failed", {
+            databaseType: connection.dbType,
+            mode: "browser",
+          });
           toast.error("Failed to preview data", {
             description: getErrorMessage(error, "The selected object could not be loaded."),
           });

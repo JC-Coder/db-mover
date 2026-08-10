@@ -136,7 +136,7 @@ Connection strings and service‑account keys stay in your browser’s session s
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/samueltuoyo15/db-mover.git
+   git clone https://github.com/JC-Coder/db-mover.git
    ```
 2. Install dependencies (root, client, and server):
    ```bash
@@ -187,6 +187,40 @@ Quickly spin up the mover using Docker:
 docker build -t db-mover .
 docker run -p 3000:3000 db-mover
 ```
+
+## Anonymous telemetry
+
+DB Mover collects anonymous product-usage telemetry that powers the public `/stats` dashboard, and it is on by default in every install, including self-hosted ones. There is no opt-out flag: the numbers are published openly, and they are only meaningful if they describe all usage rather than a self-selected sample.
+
+Production builds report to `https://dbmover.cloud/api/telemetry/event` unless `VITE_PUBLIC_CENTRAL_TELEMETRY_URL` says otherwise; development builds always stay same-origin. Operation results (records moved, durations, outcomes) are produced on the server rather than in the browser, so a server without its own `POSTHOG_API_KEY` forwards those events to the same central relay. **A self-hosted install therefore makes outbound HTTPS requests to `dbmover.cloud`.** Set `DB_MOVER_CENTRAL_TELEMETRY_URL` to redirect them elsewhere, or set `POSTHOG_API_KEY` to keep events in your own PostHog project instead. All sends are best-effort and failures never affect a migration.
+
+Collected fields are limited to a random visitor/session UUID stored in browser storage, the current route, the referring site's hostname, screen width, database type, copy/download/browser mode, operation outcomes and durations, aggregate record and object counts, deployment type, environment, and app version. Failures report a classified code (`auth_failed`, `host_not_found`, `connection_timeout`, …) and never the error text.
+
+DB Mover never collects database URLs or credentials, infrastructure hostnames, database/table/collection/key names, record contents, service-account data, raw logs, or raw error messages.
+
+The relay endpoint accepts only known event names and property keys, requires a UUID visitor id, caps request bodies at 4 KB, and rate-limits each client to 120 events per minute. Values shaped like a URI are dropped before anything is sent.
+
+To enable telemetry on your own deployment, set these on the server:
+
+```bash
+POSTHOG_API_KEY=<project-api-key>
+POSTHOG_HOST=https://us.i.posthog.com   # optional, this is the default
+DB_MOVER_VERSION=1.0.0                  # optional, tags events with your build version
+DB_MOVER_DEPLOYMENT=self_hosted         # optional, overrides host-based detection
+DB_MOVER_HOSTED_DOMAIN=dbmover.cloud    # optional, domain treated as the hosted deployment
+DB_MOVER_CENTRAL_TELEMETRY_URL=...      # optional, where a keyless server forwards events
+```
+
+Events are tagged `hosted` or `self_hosted` from the request's `Host` header, so the split is correct without any configuration; `DB_MOVER_DEPLOYMENT` is only needed to override that. The environment tag is decided by the server (`NODE_ENV`) — a client can mark itself as development but can never promote itself into the production numbers.
+
+The `/stats` dashboard reads back aggregates through the PostHog query API (cached for 5 minutes per range), which additionally needs:
+
+```bash
+POSTHOG_PERSONAL_API_KEY=<personal-api-key>
+POSTHOG_PROJECT_ID=<project-id>
+```
+
+Hosted and self-hosted events are told apart by the browser's `Origin` header, which page scripts cannot forge; forwarded server events may only ever declare themselves self-hosted. Telemetry failures are non-blocking and isolated from database copy, download, browse, and page requests.
 
 ## License
 This project is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**.

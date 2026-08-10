@@ -82,7 +82,7 @@ export const runDownload = async (
 
     await archive.finalize();
 
-    updateJob(jobId, { status: "completed", progress: 100 });
+    updateJob(jobId, { progress: 100, stats: { keys: processedKeys } });
   } catch (e) {
     console.error("Redis download failed:", e);
     throw e;
