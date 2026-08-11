@@ -1,6 +1,7 @@
 {
   "name": "db-mover-mvp",
   "version": "1.0.0",
+  "license": "MIT",
   "homepage": "https://github.com/JC-Coder/db-mover#readme",
   "repository": {
     "type": "git",
