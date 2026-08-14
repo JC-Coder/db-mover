@@ -6,6 +6,7 @@ server/node_modules/
 # Build outputs
 dist/
 client/dist/
+client/dist-ssr/
 server/dist/
 build/
 
