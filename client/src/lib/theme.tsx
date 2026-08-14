@@ -4,7 +4,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 
@@ -23,63 +22,41 @@ interface IThemeProviderProps {
 
 const THEME_STORAGE_KEY = "db_mover_theme";
 
-export const THEME_VARS: Record<ThemeMode, CSSProperties> = {
-  dark: {
-    "--landing-bg": "#080504",
-    "--landing-text": "#F5EFE8",
-    "--landing-muted": "rgba(227, 215, 200, 0.72)",
-    "--landing-subtle": "rgba(227, 215, 200, 0.5)",
-    "--landing-panel": "rgba(17, 12, 10, 0.82)",
-    "--landing-card": "#110C0A",
-    "--landing-card-soft": "#1C130E",
-    "--landing-border": "#2A1D16",
-    "--landing-border-strong": "#4E3627",
-    "--landing-accent": "#C98A3D",
-    "--landing-accent-hover": "#D49A54",
-    "--landing-accent-text": "#120B07",
-    "--landing-code": "#D8C3AA",
-    "--landing-shadow": "rgba(0, 0, 0, 0.72)",
-  } as CSSProperties,
-  light: {
-    "--landing-bg": "#FBF7F0",
-    "--landing-text": "#1F1712",
-    "--landing-muted": "rgba(64, 49, 39, 0.82)",
-    "--landing-subtle": "rgba(91, 70, 56, 0.72)",
-    "--landing-panel": "rgba(255, 250, 243, 0.86)",
-    "--landing-card": "#FFF8EF",
-    "--landing-card-soft": "#F3E6D6",
-    "--landing-border": "#D8BE9F",
-    "--landing-border-strong": "#C9A77F",
-    "--landing-accent": "#B8752F",
-    "--landing-accent-hover": "#A96729",
-    "--landing-accent-text": "#FFF8EF",
-    "--landing-code": "#8A5A30",
-    "--landing-shadow": "rgba(120, 80, 42, 0.2)",
-  } as CSSProperties,
-};
-
 const ThemeContext = createContext<IThemeContext | null>(null);
 
-const getStoredTheme = (): ThemeMode => {
+const DEFAULT_THEME: ThemeMode = "dark";
+
+const readStoredTheme = (): ThemeMode => {
   try {
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return stored === "light" || stored === "dark" ? stored : "dark";
+    return stored === "light" || stored === "dark" ? stored : DEFAULT_THEME;
   } catch {
-    return "dark";
+    return DEFAULT_THEME;
   }
 };
 
 export function ThemeProvider({ children }: IThemeProviderProps) {
-  const [theme, setTheme] = useState<ThemeMode>(getStoredTheme);
+  // Starts at the default rather than reading storage, so the first client render matches the
+  // pre rendered HTML exactly. The blocking script in index.html has already applied the stored
+  // theme to <html>, so there is no flash while this effect catches the state up.
+  const [theme, setTheme] = useState<ThemeMode>(DEFAULT_THEME);
   const nextTheme: ThemeMode = theme === "dark" ? "light" : "dark";
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    setTheme(readStoredTheme());
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    document.documentElement.dataset.theme = theme;
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {
       // Keep theme usable even when storage is unavailable.
     }
-  }, [theme]);
+  }, [hydrated, theme]);
 
   const value = useMemo<IThemeContext>(
     () => ({

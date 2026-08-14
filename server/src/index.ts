@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import "dotenv/config";
 import dns from "dns";
+import { readFileSync } from "fs";
 import { randomUUID } from "crypto";
 import { Hono } from "hono";
 
@@ -723,17 +724,81 @@ app.use(
   "/*",
   serveStatic({
     root: "./public",
-    rewriteRequestPath: (path) => (path === "/" ? "/index.html" : path),
+    // Prerendered pages are written as <route>/index.html, so extensionless paths resolve to the
+    // static file when one exists and fall through to the SPA handler below when it does not.
+    rewriteRequestPath: (path) => {
+      if (path === "/") return "/index.html";
+      const lastSegment = path.split("/").pop() ?? "";
+      if (lastSegment.includes(".")) return path;
+      return `${path.replace(/\/$/, "")}/index.html`;
+    },
   }),
 );
 
-// Fallback for SPA routing
-app.use(
-  "*",
-  serveStatic({
-    path: "./public/index.html",
-  }),
-);
+/**
+ * Every unmatched path used to return the app shell with a 200, which search engines report as a
+ * soft 404 and which wastes crawl budget. The build emits route-manifest.json listing the paths the
+ * SPA genuinely handles; anything outside it now gets a real 404.
+ */
+const buildRoutePatterns = (): RegExp[] => {
+  try {
+    const raw = readFileSync("./public/route-manifest.json", "utf8");
+    const parsed = JSON.parse(raw) as { routes?: string[] };
+    return (parsed.routes ?? []).map(
+      (pattern) => new RegExp(`^${pattern.replace(/:[^/]+/g, "[^/]+")}/?$`),
+    );
+  } catch {
+    // No manifest (dev, or a build predating it): fall back to treating every path as known.
+    return [];
+  }
+};
+
+const routePatterns = buildRoutePatterns();
+
+const isKnownRoute = (path: string): boolean =>
+  routePatterns.length === 0 || routePatterns.some((pattern) => pattern.test(path));
+
+const pageCache = new Map<string, string | undefined>();
+
+const readPublicPage = (fileName: string): string | undefined => {
+  if (!pageCache.has(fileName)) {
+    try {
+      pageCache.set(fileName, readFileSync(`./public/${fileName}`, "utf8"));
+    } catch {
+      pageCache.set(fileName, undefined);
+    }
+  }
+  return pageCache.get(fileName);
+};
+
+const firstAvailablePage = (...fileNames: string[]): string | undefined => {
+  for (const fileName of fileNames) {
+    const page = readPublicPage(fileName);
+    if (page) return page;
+  }
+  return undefined;
+};
+
+// SPA fallback for known routes, real 404s for everything else.
+app.all("*", (c) => {
+  const path = c.req.path;
+
+  if (path.startsWith("/api/")) {
+    return c.json({ error: "Not found" }, 404);
+  }
+
+  if (isKnownRoute(path)) {
+    const shell = firstAvailablePage("app-shell.html", "index.html");
+    if (shell) return c.html(shell);
+  }
+
+  const notFoundPage = firstAvailablePage(
+    "404.html",
+    "app-shell.html",
+    "index.html",
+  );
+  return notFoundPage ? c.html(notFoundPage, 404) : c.text("Not Found", 404);
+});
 
 const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 let server: ReturnType<typeof serve> | undefined;

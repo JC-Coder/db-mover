@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
 
+# The app surfaces (/select, /config/*, /migration/*, /browser/*, /stats) are marked noindex in
+# their own markup rather than disallowed here — a disallowed page is never fetched, so the
+# noindex would never be seen.
+
 Sitemap: https://dbmover.cloud/sitemap.xml
