@@ -72,7 +72,7 @@ export const GUIDES: IGuide[] = [
         steps: [
           "Open DB Mover and pick MongoDB as your engine.",
           "Paste your source connection string, then your target connection string.",
-          "Choose Copy, then start the job.",
+          "Choose Copy rather than Download, since you are writing to a target.",
           "Start the job and watch the streaming log until it reports completed.",
         ],
       },
@@ -141,7 +141,7 @@ export const GUIDES: IGuide[] = [
         steps: [
           "Open DB Mover and pick PostgreSQL as your engine.",
           "Paste the source URI, then the target URI.",
-          "Choose Copy, then start the job.",
+          "Choose Copy rather than Download, since you are writing to a target.",
           "Start the job and follow the live log output until it completes.",
         ],
       },
@@ -209,7 +209,7 @@ export const GUIDES: IGuide[] = [
         steps: [
           "Open DB Mover and pick MySQL as your engine.",
           "Paste the source connection string, then the target connection string.",
-          "Choose Copy, then start the job.",
+          "Choose Copy rather than Download, since you are writing to a target.",
           "Start the job and watch the streaming log until it reports completed.",
         ],
       },
@@ -277,7 +277,7 @@ export const GUIDES: IGuide[] = [
         steps: [
           "Open DB Mover and pick Redis as your engine.",
           "Paste the source URI, then the target URI.",
-          "Choose Copy, then start the job.",
+          "Choose Copy rather than Download, since you are writing to a target.",
           "Start the job and watch the log until it completes.",
         ],
       },
