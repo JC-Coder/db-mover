@@ -8,6 +8,7 @@ import { GuidePage } from "@/pages/GuidePage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { Seo } from "@/components/Seo";
 import { getAppRouteSeo } from "@/lib/seo";
+import { SupportWidget } from "@/components/SupportWidget";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 import { trackAppOpenedOnce, trackTelemetry } from "@/lib/telemetry";
 
@@ -131,6 +132,7 @@ function AppRoutes() {
         </AnimatePresence>
       </div>
 
+      <SupportWidget />
       <Toaster position="bottom-right" closeButton theme={theme} />
     </div>
   );
