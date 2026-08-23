@@ -10,7 +10,7 @@ export const SITE_URL = "https://dbmover.cloud";
 export const SITE_NAME = "DB Mover";
 export const OG_IMAGE_URL = `${SITE_URL}/og-image.png`;
 export const OG_IMAGE_ALT =
-  "DB Mover — move databases without the command-line friction.";
+  "DB Mover — Migrate any database in minutes. No CLI headaches.";
 export const TWITTER_HANDLE = "@jc_coder1";
 
 export const DEFAULT_TITLE =
