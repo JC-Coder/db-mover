@@ -48,7 +48,7 @@ export class MongoAdapter implements IDatabaseAdapter {
     // The stream parameter is actually the response stream from Hono
     // We'll create an archiver and pipe it to the stream
     const archive = archiver("zip", {
-      zlib: { level: 9 },
+      zlib: { level: 1 },
     });
 
     // Create a promise that resolves when the stream finishes

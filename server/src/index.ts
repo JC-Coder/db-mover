@@ -1,10 +1,15 @@
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
-import "dotenv/config";
 import dns from "dns";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync, createReadStream } from "fs";
+import { Readable } from "stream";
 import { randomUUID } from "crypto";
 import { Hono } from "hono";
+import {
+  cleanupExpiredLocalExports,
+  getLocalFilePath,
+  uploadStreamToStorage,
+} from "./lib/storage";
 
 // Prefer IPv4 first to avoid IPv6 DNS lookup delays on macOS
 try {
@@ -15,6 +20,7 @@ try {
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { stream, streamSSE } from "hono/streaming";
+import { config } from "./lib/config";
 import { createJob, getJob, Job, addLog, updateJob } from "./lib/jobManager";
 import {
   classifyTelemetryError,
@@ -64,6 +70,35 @@ const getTelemetryIdentity = (c: { req: { header: (name: string) => string | und
     sessionId: sessionId && UUID_PATTERN.test(sessionId) ? sessionId : undefined,
     deployment: resolveDeployment(c.req.header("host")),
   };
+};
+
+// Driver errors can contain connection strings, so expose only a safe, actionable summary.
+const getSafeOperationError = (error: unknown): string => {
+  switch (classifyTelemetryError(error)) {
+    case "auth_failed":
+      return "Database authentication failed.";
+    case "host_not_found":
+      return "Database host could not be found.";
+    case "connection_refused":
+    case "network_unreachable":
+      return "Could not connect to the database.";
+    case "connection_timeout":
+      return "Database connection timed out.";
+    case "tls_error":
+      return "Database TLS connection failed.";
+    case "permission_denied":
+      return "Database permission was denied.";
+    case "database_not_found":
+      return "The requested database was not found.";
+    case "invalid_uri":
+      return "The database connection string is invalid.";
+    case "aborted":
+      return "The database operation was cancelled.";
+    case "unsupported_operation":
+      return "This database operation is not supported.";
+    default:
+      return "The database operation failed. Check the database connection and try again.";
+  }
 };
 
 // ── Telemetry relay ────────────────────────────────────────────────────────
@@ -275,9 +310,9 @@ app.get("/api/stats", async (c) => {
     return c.json(cachedRange.value);
   }
 
-  const personalKey = process.env.POSTHOG_PERSONAL_API_KEY;
-  const projectId = process.env.POSTHOG_PROJECT_ID;
-  const rawHost = process.env.POSTHOG_HOST || "https://us.posthog.com";
+  const personalKey = config.posthog.personalApiKey;
+  const projectId = config.posthog.projectId;
+  const rawHost = config.posthog.host || "https://us.posthog.com";
   const apiHost = rawHost.replace(".i.posthog.com", ".posthog.com");
   const rangeIntervals: Record<Exclude<StatsRange, "all">, string> = {
     "7d": "INTERVAL 7 DAY",
@@ -602,9 +637,8 @@ app.post("/api/migrate/start", async (c) => {
           firebaseType,
         );
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        console.error("Background migration failed:", error);
+        const errorMessage = getSafeOperationError(error);
+        console.error("Background migration failed:", errorMessage);
         addLog(job.id, `Migration failed: ${errorMessage}`);
         updateJob(job.id, { status: "failed", error: errorMessage });
       }
@@ -625,26 +659,28 @@ app.get("/api/migrate/:jobId/status", async (c) => {
     return c.json({ error: "Job not found" }, 404);
   }
 
+  const serializeJob = (j: Job) =>
+    JSON.stringify({
+      status: j.status,
+      progress: j.progress,
+      logs: j.logs,
+      stats: j.stats,
+      dbType: j.dbType,
+      type: j.type,
+      downloadUrl: j.downloadUrl,
+      downloadExpiry: j.downloadExpiry,
+      fileSizeBytes: j.fileSizeBytes,
+      error: j.error,
+    });
+
   return streamSSE(c, async (stream) => {
     await stream.writeSSE({
-      data: JSON.stringify({
-        status: job.status,
-        progress: job.progress,
-        logs: job.logs,
-        stats: job.stats,
-        dbType: job.dbType,
-      }),
+      data: serializeJob(job),
     });
 
     const onUpdate = (updatedJob: Job) => {
       stream.writeSSE({
-        data: JSON.stringify({
-          status: updatedJob.status,
-          progress: updatedJob.progress,
-          logs: updatedJob.logs,
-          stats: updatedJob.stats,
-          dbType: updatedJob.dbType,
-        }),
+        data: serializeJob(updatedJob),
       });
     };
 
@@ -658,12 +694,7 @@ app.get("/api/migrate/:jobId/status", async (c) => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       if (job.status === "completed" || job.status === "failed") {
         await stream.writeSSE({
-          data: JSON.stringify({
-            status: job.status,
-            progress: job.progress,
-            logs: job.logs,
-            stats: job.stats,
-          }),
+          data: serializeJob(job),
         });
         break;
       }
@@ -679,43 +710,85 @@ app.post("/api/download", async (c) => {
   if (!isFirestore && !sourceUri) return c.json({ error: "Missing Source URI" }, 400);
 
   const job = createJob("download", dbType as string, getTelemetryIdentity(c));
+  const fileName = `dump_${Date.now()}.zip`;
+  const storageKey = `${job.id}_${fileName}`;
 
-  c.header("Content-Type", "application/zip");
-  c.header(
-    "Content-Disposition",
-    `attachment; filename="dump_${Date.now()}.zip"`,
-  );
-
-  return stream(c, async (honoStream) => {
-    const { Writable } = await import("stream");
-    const writableStream = new Writable({
-      write(chunk: Buffer, encoding: string, callback: () => void) {
-        job.outputBytes += chunk.length;
-        honoStream
-          .write(chunk)
-          .then(() => callback())
-          .catch(callback);
-      },
-    });
-
-    writableStream.on("error", (err) => {
-      console.error("Stream error:", err);
-    });
+  const startDownloadJob = async () => {
+    const { PassThrough } = await import("stream");
+    const passThrough = new PassThrough();
+    let uploadPromise: ReturnType<typeof uploadStreamToStorage> | undefined;
+    updateJob(job.id, { status: "running", progress: 5 });
+    addLog(job.id, "Starting database export archive...");
 
     try {
+      uploadPromise = uploadStreamToStorage(
+        storageKey,
+        passThrough,
+        fileName,
+        (bytes) => {
+          job.outputBytes = bytes;
+        },
+      );
+      // Attach a handler immediately so an adapter failure cannot leave a rejected upload unobserved.
+      void uploadPromise.catch(() => undefined);
+
       const adapter = getDatabaseAdapter(dbType as DatabaseType);
-      await adapter.runDownload(job.id, sourceUri, writableStream, credent, type);
-      updateJob(job.id, { status: "completed", progress: 100 });
+      await adapter.runDownload(job.id, sourceUri, passThrough, credent, type);
+
+      const result = await uploadPromise;
+      addLog(job.id, "Export completed and uploaded to storage.");
+      updateJob(job.id, {
+        status: "completed",
+        progress: 100,
+        downloadUrl: result.downloadUrl,
+        downloadKey: result.key,
+        downloadExpiry: result.expiresAt,
+        fileSizeBytes: result.sizeBytes,
+      });
     } catch (e) {
-      console.error("Download error:", e);
+      const errorMessage = getSafeOperationError(e);
+      console.error("Background download failed:", errorMessage);
+      addLog(job.id, `Export failed: ${errorMessage}`);
       updateJob(job.id, {
         status: "failed",
-        error: e instanceof Error ? e.message : String(e),
+        error: errorMessage,
       });
-      if (!writableStream.destroyed) {
-        writableStream.destroy(e instanceof Error ? e : new Error(String(e)));
+      if (!passThrough.destroyed) {
+        passThrough.destroy(e instanceof Error ? e : new Error(String(e)));
+      }
+      if (uploadPromise) {
+        await uploadPromise.catch(() => undefined);
       }
     }
+  };
+
+  void startDownloadJob();
+
+  return c.json(
+    {
+      jobId: job.id,
+      message: "Download job started",
+      status: "pending",
+    },
+    202,
+  );
+});
+
+app.get("/api/download/file/:key", async (c) => {
+  const key = c.req.param("key");
+  const filePath = getLocalFilePath(key);
+  if (!existsSync(filePath)) {
+    return c.text("Download expired or not found", 404);
+  }
+
+  const fileName = key.includes("_") ? key.split("_").slice(1).join("_") : key;
+  c.header("Content-Type", "application/zip");
+  c.header("Content-Disposition", `attachment; filename="${fileName}"`);
+
+  const fileStream = createReadStream(filePath);
+  const webStream = Readable.toWeb(fileStream) as unknown as ReadableStream;
+  return stream(c, async (honoStream) => {
+    await honoStream.pipe(webStream);
   });
 });
 
@@ -800,7 +873,7 @@ app.all("*", (c) => {
   return notFoundPage ? c.html(notFoundPage, 404) : c.text("Not Found", 404);
 });
 
-const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+const port = config.port;
 let server: ReturnType<typeof serve> | undefined;
 
 const startServer = () => {
@@ -835,6 +908,12 @@ process.on("SIGTERM", () => void shutdown());
 process.on("SIGINT", () => void shutdown());
 
 try {
+  void cleanupExpiredLocalExports().catch((error) => {
+    console.warn(
+      "Failed to clean expired local exports:",
+      error instanceof Error ? error.message : String(error),
+    );
+  });
   startServer();
 } catch (error) {
   console.error("Server startup failed:", error instanceof Error ? error.message : String(error));

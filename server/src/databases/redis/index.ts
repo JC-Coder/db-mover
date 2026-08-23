@@ -45,7 +45,7 @@ export class RedisAdapter implements IDatabaseAdapter {
     stream: Writable,
   ): Promise<void> {
     const archive = archiver("zip", {
-      zlib: { level: 9 },
+      zlib: { level: 1 },
     });
 
     const streamFinished = new Promise<void>((resolve, reject) => {

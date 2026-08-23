@@ -416,6 +416,12 @@ export function LandingPage({ onStart }: ILandingPageProps) {
                 Documentation
               </Link>
               <Link
+                to="/privacy"
+                className="text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
+              >
+                Privacy
+              </Link>
+              <Link
                 to="/stats#telemetry"
                 className="text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
               >

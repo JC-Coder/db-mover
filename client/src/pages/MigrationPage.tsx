@@ -57,9 +57,14 @@ export function MigrationPage() {
     "pending" | "running" | "completed" | "failed"
   >("pending");
   const [dbType, setDbType] = useState<string | undefined>(undefined);
+  const [jobType, setJobType] = useState<"copy" | "download">("copy");
+  const [downloadUrl, setDownloadUrl] = useState<string | undefined>(undefined);
+  const [downloadExpiry, setDownloadExpiry] = useState<string | undefined>(undefined);
+  const [fileSizeBytes, setFileSizeBytes] = useState<number | undefined>(undefined);
   const [stats, setStats] = useState({
     collections: 0,
     documents: 0,
+    tables: 0,
     totalDocuments: 0,
   });
 
@@ -103,9 +108,15 @@ export function MigrationPage() {
         description:
           "Your migration has been restarted with the same configuration.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      const msg = err.response?.data?.error || "Failed to restart migration.";
+      const msg =
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as { response?: { data?: { error?: string } } }).response?.data?.error === "string"
+          ? (err as { response: { data: { error: string } } }).response.data.error
+          : "Failed to restart migration.";
       toast.error("Retry failed", { description: msg });
     }
   };
@@ -132,6 +143,10 @@ export function MigrationPage() {
         if (data.progress !== undefined) setProgress(data.progress);
         if (data.status) setStatus(data.status);
         if (data.dbType) setDbType(data.dbType);
+        if (data.type) setJobType(data.type);
+        if (data.downloadUrl) setDownloadUrl(data.downloadUrl);
+        if (data.downloadExpiry) setDownloadExpiry(data.downloadExpiry);
+        if (data.fileSizeBytes !== undefined) setFileSizeBytes(data.fileSizeBytes);
         if (data.stats) setStats(data.stats);
 
         if (data.status === "completed" || data.status === "failed") {
@@ -144,7 +159,6 @@ export function MigrationPage() {
 
     es.onerror = (err) => {
       console.error("SSE Error", err);
-      // Don't toast here as it might be a temporary disconnect
     };
 
     return () => {
@@ -170,7 +184,7 @@ export function MigrationPage() {
             className="flex items-center gap-2 text-sm text-[var(--landing-subtle)] transition-colors hover:text-[var(--landing-text)]"
           >
             <ArrowLeft className="h-4 w-4" />
-            New migration
+            {jobType === "download" ? "New export" : "New migration"}
           </button>
           <ThemeToggle />
         </div>
@@ -180,6 +194,10 @@ export function MigrationPage() {
         progress={progress}
         status={status}
         dbType={dbType}
+        type={jobType}
+        downloadUrl={downloadUrl}
+        downloadExpiry={downloadExpiry}
+        fileSizeBytes={fileSizeBytes}
         stats={stats}
         onRetry={status === "failed" ? handleRetry : undefined}
       />

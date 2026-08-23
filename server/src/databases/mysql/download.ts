@@ -11,6 +11,14 @@ const getDbName = (uri: string): string => {
   }
 };
 
+import { Readable } from "stream";
+
+interface IMysqlStreamableConnection {
+  connection: {
+    query: (sql: string) => { stream: (options?: object) => Readable };
+  };
+}
+
 export const runDownload = async (
   sourceUri: string,
   archive: archiver.Archiver,
@@ -40,33 +48,27 @@ export const runDownload = async (
     }
 
     for (const tableName of tablesList) {
-      try {
-        // Get all rows from table
-        const [rows] = await connection.query<mysql.RowDataPacket[]>(
-          `SELECT * FROM ${mysql.escapeId(tableName)}`,
-        );
+      const streamable = connection as unknown as IMysqlStreamableConnection;
+      const queryStream = streamable.connection
+        .query(`SELECT * FROM ${mysql.escapeId(tableName)}`)
+        .stream();
 
-        // Convert rows to JSON
-        const jsonData = JSON.stringify(rows, null, 2);
+      const tableStream = Readable.from(
+        (async function* () {
+          yield "[\n";
+          let isFirst = true;
+          for await (const row of queryStream) {
+            if (!isFirst) yield ",\n";
+            yield JSON.stringify(row);
+            isFirst = false;
+          }
+          yield "\n]";
+        })(),
+      );
 
-        // Add to archive
-        archive.append(Buffer.from(jsonData), {
-          name: `${tableName}.json`,
-        });
-      } catch (tableError) {
-        console.error(`Error exporting table ${tableName}:`, tableError);
-        // Continue with next table instead of failing entirely
-        const errorMsg =
-          tableError instanceof Error ? tableError.message : String(tableError);
-        archive.append(
-          Buffer.from(
-            JSON.stringify({ error: `Failed to export: ${errorMsg}` }, null, 2),
-          ),
-          {
-            name: `${tableName}_ERROR.json`,
-          },
-        );
-      }
+      archive.append(tableStream, {
+        name: `${tableName}.json`,
+      });
     }
 
     await archive.finalize();

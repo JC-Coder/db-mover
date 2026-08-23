@@ -1,7 +1,8 @@
 import { PostHog } from "posthog-node";
+import { config } from "./config";
 
-const apiKey = process.env.POSTHOG_API_KEY;
-const host = process.env.POSTHOG_HOST || "https://us.i.posthog.com";
+const apiKey = config.posthog.apiKey;
+const host = config.posthog.host || "https://us.i.posthog.com";
 
 export const posthog = apiKey ? new PostHog(apiKey, { host }) : null;
 
@@ -9,7 +10,7 @@ export type TelemetryDeployment = "hosted" | "self_hosted";
 export type TelemetryEnvironment = "production" | "development" | "test";
 
 /** Domain that identifies the hosted deployment. Override for a differently-branded host. */
-const HOSTED_DOMAIN = (process.env.DB_MOVER_HOSTED_DOMAIN || "dbmover.cloud").toLowerCase();
+const HOSTED_DOMAIN = config.telemetry.hostedDomain.toLowerCase();
 
 /**
  * Deployment is derived from the request host, because DB_MOVER_DEPLOYMENT is easy to forget
@@ -26,7 +27,7 @@ export const resolveDeployment = (requestHost?: string): TelemetryDeployment => 
       : "self_hosted";
   }
 
-  const configured = process.env.DB_MOVER_DEPLOYMENT?.trim().toLowerCase();
+  const configured = config.telemetry.deployment?.trim().toLowerCase();
   if (configured === "hosted" || configured === "self_hosted") return configured;
   return "self_hosted";
 };
@@ -37,7 +38,7 @@ export const resolveDeployment = (requestHost?: string): TelemetryDeployment => 
  */
 export const resolveEnvironment = (clientClaim?: unknown): TelemetryEnvironment => {
   if (clientClaim === "development" || clientClaim === "test") return clientClaim;
-  return process.env.NODE_ENV === "production" ? "production" : "development";
+  return config.nodeEnv === "production" ? "production" : "development";
 };
 
 export type TelemetryErrorCode =
@@ -126,7 +127,7 @@ export interface ITelemetryPayload {
  * browser, so without this hop the public stats would only ever describe the hosted app.
  */
 const CENTRAL_RELAY_URL =
-  process.env.DB_MOVER_CENTRAL_TELEMETRY_URL?.trim() || "https://dbmover.cloud/api/telemetry/event";
+  config.telemetry.centralRelayUrl.trim() || "https://dbmover.cloud/api/telemetry/event";
 
 /** Header marking a server-to-server forward, so the receiver can refuse to forward it onward. */
 export const RELAY_HOP_HEADER = "x-db-mover-relay-hop";
@@ -170,7 +171,7 @@ const forwardEvent = (payload: ITelemetryPayload): void => {
       // A forwarder may only ever declare itself self-hosted; the relay ignores any other claim.
       deployment: "self_hosted",
       environment: payload.environment || resolveEnvironment(),
-      appVersion: process.env.DB_MOVER_VERSION,
+      appVersion: config.telemetry.appVersion,
     }),
     signal: AbortSignal.timeout(5000),
   }).catch(() => {
@@ -196,7 +197,7 @@ export const trackEvent = (payload: ITelemetryPayload): void => {
         $process_person_profile: false,
         deployment: payload.deployment || resolveDeployment(),
         environment: payload.environment || resolveEnvironment(),
-        app_version: process.env.DB_MOVER_VERSION || "1.0.0",
+        app_version: config.telemetry.appVersion || "1.0.0",
         ...sanitizeProperties(payload.properties || {}),
       },
     });

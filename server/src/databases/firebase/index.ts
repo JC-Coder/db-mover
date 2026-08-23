@@ -65,7 +65,7 @@ export class FirebaseAdapter implements IDatabaseAdapter {
     type = "rtdb",
   ): Promise<void> {
     const archive = archiver("zip", {
-      zlib: { level: 9 },
+      zlib: { level: 1 },
     });
 
     // Create a promise that resolves when the stream finishes

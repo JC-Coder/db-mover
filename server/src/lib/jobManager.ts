@@ -28,6 +28,10 @@ export interface Job {
   telemetryId: string;
   retryCount: number;
   outputBytes: number;
+  downloadUrl?: string;
+  downloadKey?: string;
+  downloadExpiry?: string;
+  fileSizeBytes?: number;
   telemetryRecorded: boolean;
   emitter: EventEmitter;
 }

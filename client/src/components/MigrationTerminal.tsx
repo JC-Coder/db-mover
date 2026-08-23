@@ -1,24 +1,37 @@
 import { useEffect, useRef } from "react";
-import { CheckCircle2, XCircle, Loader2, Database, Layers, RotateCw } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Database, Layers, RotateCw, Download, HardDrive } from "lucide-react";
 import { DatabaseBrand } from "@/components/DatabaseBrand";
 import { getDatabaseBrand } from "@/lib/databaseBrands";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
-interface MigrationTerminalProps {
+export interface IMigrationTerminalProps {
   logs: string[];
   progress: number;
   status: "pending" | "running" | "completed" | "failed";
   dbType?: string;
+  type?: "copy" | "download";
+  downloadUrl?: string;
+  downloadExpiry?: string;
+  fileSizeBytes?: number;
   stats?: {
     collections: number;
     documents: number;
     keys?: number;
+    tables?: number;
     totalDocuments?: number;
   };
   onRetry?: () => void;
 }
+
+const formatBytes = (bytes: number): string => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
+};
 
 const STATUS_CONFIG = {
   pending: { label: 'Waiting', color: 'text-[var(--landing-subtle)]', bg: 'bg-[var(--landing-card)]', border: 'border-[var(--landing-border)]' },
@@ -27,11 +40,23 @@ const STATUS_CONFIG = {
   failed: { label: 'Failed', color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
 };
 
-export function MigrationTerminal({ logs, progress, status, dbType, stats, onRetry }: MigrationTerminalProps) {
+export function MigrationTerminal({
+  logs,
+  progress,
+  status,
+  dbType,
+  type = "copy",
+  downloadUrl,
+  downloadExpiry,
+  fileSizeBytes,
+  stats,
+  onRetry,
+}: IMigrationTerminalProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const cfg = STATUS_CONFIG[status];
   const brand = getDatabaseBrand(dbType);
   const { theme } = useTheme();
+  const isDownload = type === "download";
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -57,13 +82,15 @@ export function MigrationTerminal({ logs, progress, status, dbType, stats, onRet
             </div>
           )}
           <div className="min-w-0">
-            <h1 className="text-4xl font-bold text-[var(--landing-text)]">Migration</h1>
-          <p className="mt-2 text-base text-[var(--landing-subtle)]">
-            {status === 'pending' && 'Starting up…'}
-            {status === 'running' && 'Your data is being transferred. Keep this tab open.'}
-            {status === 'completed' && 'All done. Your data has been transferred successfully.'}
-            {status === 'failed' && 'Something went wrong. Check the logs below and retry.'}
-          </p>
+            <h1 className="text-4xl font-bold text-[var(--landing-text)]">
+              {isDownload ? "Database Export" : "Migration"}
+            </h1>
+            <p className="mt-2 text-base text-[var(--landing-subtle)]">
+              {status === 'pending' && (isDownload ? 'Preparing export…' : 'Starting up…')}
+              {status === 'running' && (isDownload ? 'Exporting database to compressed archive. Keep this tab open.' : 'Your data is being transferred. Keep this tab open.')}
+              {status === 'completed' && (isDownload ? 'Export completed! Your backup archive is ready.' : 'All done. Your data has been transferred successfully.')}
+              {status === 'failed' && 'Something went wrong. Check the logs below and retry.'}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -85,6 +112,35 @@ export function MigrationTerminal({ logs, progress, status, dbType, stats, onRet
         </div>
       </div>
 
+      {/* Download Action Card if completed */}
+      {isDownload && status === "completed" && downloadUrl && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+        >
+          <div className="space-y-1">
+            <h3 className="text-lg font-semibold text-emerald-400 flex items-center gap-2">
+              <Download className="h-5 w-5" /> Download Ready
+            </h3>
+            <p className="text-sm text-[var(--landing-subtle)]">
+              {fileSizeBytes ? `Archive size: ${formatBytes(fileSizeBytes)} • ` : ""}
+              {downloadExpiry
+                ? `Direct download link valid until ${new Date(downloadExpiry).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`
+                : "Direct streaming download link generated."}
+            </p>
+          </div>
+          <a
+            href={downloadUrl}
+            download
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 text-sm font-semibold transition-colors shadow-lg shadow-emerald-600/20"
+          >
+            <Download className="h-4 w-4" />
+            Download .zip
+          </a>
+        </motion.div>
+      )}
+
       {/* Progress */}
       <div className="rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-card)] p-6 space-y-4">
         <div className="flex items-center justify-between">
@@ -100,20 +156,29 @@ export function MigrationTerminal({ logs, progress, status, dbType, stats, onRet
           />
         </div>
 
-        {stats && (stats.collections > 0 || stats.documents > 0) && (
-          <div className="grid grid-cols-2 gap-3 pt-2">
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          {fileSizeBytes && fileSizeBytes > 0 ? (
             <StatCard
-              icon={<Layers className="h-4 w-4" />}
-              label={dbType === 'redis' ? 'Keys processed' : 'Collections'}
-              value={dbType === 'redis' ? stats.documents.toLocaleString() : stats.collections}
+              icon={<HardDrive className="h-4 w-4" />}
+              label="Archive Size"
+              value={formatBytes(fileSizeBytes)}
             />
-            <StatCard
-              icon={<Database className="h-4 w-4" />}
-              label={dbType === 'redis' ? 'Total keys' : 'Documents'}
-              value={dbType === 'redis' && stats.totalDocuments ? stats.totalDocuments.toLocaleString() : stats.documents.toLocaleString()}
-            />
-          </div>
-        )}
+          ) : null}
+          {stats && (stats.collections > 0 || stats.documents > 0 || (stats.tables && stats.tables > 0)) ? (
+            <>
+              <StatCard
+                icon={<Layers className="h-4 w-4" />}
+                label={dbType === 'redis' ? 'Keys processed' : stats.tables ? 'Tables' : 'Collections'}
+                value={dbType === 'redis' ? stats.documents.toLocaleString() : stats.tables || stats.collections}
+              />
+              <StatCard
+                icon={<Database className="h-4 w-4" />}
+                label={dbType === 'redis' ? 'Total keys' : 'Documents'}
+                value={dbType === 'redis' && stats.totalDocuments ? stats.totalDocuments.toLocaleString() : stats.documents.toLocaleString()}
+              />
+            </>
+          ) : null}
+        </div>
       </div>
 
       {/* Log output */}
