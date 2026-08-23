@@ -5,10 +5,15 @@ import { AnimatePresence } from "framer-motion";
 import { LandingPage } from "@/components/LandingPage";
 import { DocsPage } from "@/pages/DocsPage";
 import { GuidePage } from "@/pages/GuidePage";
+import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { Seo } from "@/components/Seo";
 import { getAppRouteSeo } from "@/lib/seo";
-import { SupportWidget } from "@/components/SupportWidget";
+import {
+  removeSupportWidget,
+  SUPPORT_WIDGET_IDS,
+  SupportWidget,
+} from "@/components/SupportWidget";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 import { trackAppOpenedOnce, trackTelemetry } from "@/lib/telemetry";
 
@@ -59,11 +64,35 @@ function AppRoutes() {
   const location = useLocation();
   const { theme } = useTheme();
   const appSeo = getAppRouteSeo(location.pathname);
+  const isWorkspaceRoute = ["/select", "/config/", "/migration/", "/browser/"].some(
+    (path) => location.pathname === path || location.pathname.startsWith(path),
+  );
 
   useEffect(() => {
     trackAppOpenedOnce();
     trackTelemetry("page_viewed");
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isWorkspaceRoute) return;
+
+    removeSupportWidget();
+
+    // The third-party script may finish after route navigation, so remove anything it adds.
+    const observer = new MutationObserver((mutations) => {
+      const addedSupportWidget = mutations.some((mutation) =>
+        [...mutation.addedNodes].some(
+          (node) =>
+            node instanceof HTMLElement && SUPPORT_WIDGET_IDS.includes(node.id),
+        ),
+      );
+
+      if (addedSupportWidget) removeSupportWidget();
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [isWorkspaceRoute]);
 
   const launchApp = () => {
     trackTelemetry("landing_cta_clicked");
@@ -85,6 +114,7 @@ function AppRoutes() {
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<LandingPage onStart={launchApp} />} />
               <Route path="/docs" element={<DocsPage />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
               <Route path="/guides/:slug" element={<GuidePage />} />
               <Route
                 path="/select"
@@ -132,7 +162,7 @@ function AppRoutes() {
         </AnimatePresence>
       </div>
 
-      <SupportWidget />
+      {!isWorkspaceRoute && <SupportWidget />}
       <Toaster position="bottom-right" closeButton theme={theme} />
     </div>
   );

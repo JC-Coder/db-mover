@@ -64,34 +64,30 @@ sessionStorage.setItem(
   };
 
   const handleStartDownload = async (config: IDownloadConfig) => {
-		const promise = async () => {
-			const response = await api.post(
-				'/download',
-				{
-					sourceUri: config.sourceUri,
-					credent: config.credent,
-					type: config.type,
-					dbType: dbType,
-				},
-				{
-					responseType: 'blob',
-				},
-			);
+		try {
+			const response = await api.post('/download', {
+				sourceUri: config.sourceUri,
+				credent: config.credent,
+				type: config.type,
+				dbType: dbType,
+			});
 
-			const url = window.URL.createObjectURL(new Blob([response.data]));
-			const link = document.createElement('a');
-			link.href = url;
-			link.setAttribute('download', `dump_${Date.now()}.zip`);
-			document.body.appendChild(link);
-			link.click();
-			link.remove();
-		};
-
-		toast.promise(promise(), {
-			loading: 'Preparing download...',
-			success: 'Download started!',
-			error: 'Export failed.',
-		});
+			if (response.data?.jobId) {
+				navigate(`/migration/${response.data.jobId}`);
+			} else {
+				toast.error('Failed to initialize export job');
+			}
+		} catch (err: unknown) {
+			const msg =
+				typeof err === 'object' &&
+				err !== null &&
+				'response' in err &&
+				typeof (err as { response?: { data?: { error?: string } } }).response?.data?.error === 'string'
+					? (err as { response: { data: { error: string } } }).response.data.error
+					: 'Failed to start export job.';
+			toast.error('Export failed', { description: msg });
+			throw err;
+		}
   };
 
   const handleStartBrowse = (config: IBrowseConfig) => {

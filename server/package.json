@@ -10,7 +10,11 @@
     "verify-firebase": "tsx scripts/firebase-verify.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1116.0",
+    "@aws-sdk/lib-storage": "^3.1116.0",
+    "@aws-sdk/s3-request-presigner": "^3.1116.0",
     "@hono/node-server": "^1.13.7",
+    "@types/pg-query-stream": "^1.0.3",
     "archiver": "^7.0.1",
     "dotenv": "^16.4.7",
     "firebase-admin": "^13.7.0",
@@ -19,6 +23,7 @@
     "mongodb": "^6.12.0",
     "mysql2": "^3.6.5",
     "pg": "^8.11.3",
+    "pg-query-stream": "^4.17.0",
     "posthog-node": "^5.48.1"
   },
   "devDependencies": {

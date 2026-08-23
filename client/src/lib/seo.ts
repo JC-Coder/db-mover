@@ -103,6 +103,16 @@ const CONTENT_ROUTES: IStaticRoute[] = [
     changefreq: "monthly",
     lastmod: guide.updated,
   })),
+  {
+    path: "/privacy",
+    title: "Privacy Policy | DB Mover",
+    description:
+      "Understand how DB Mover processes database connections in volatile memory, purges temporary backup archives after 24 hours, and ensures zero persistent credential storage.",
+    indexable: true,
+    priority: 0.5,
+    changefreq: "monthly",
+    lastmod: "2026-08-23",
+  },
 ];
 
 export const STATIC_ROUTES: IStaticRoute[] = [

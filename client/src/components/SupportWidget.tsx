@@ -1,6 +1,22 @@
 import { useEffect } from "react";
 import { useTheme } from "@/lib/theme";
 
+export const SUPPORT_WIDGET_IDS = [
+  "myhappr-widget-script",
+  "myhappr-floating-btn",
+  "myhappr-modal-overlay",
+  "myhappr-widget-styles",
+  "myhappr-widget-font",
+];
+
+export const removeSupportWidget = () => {
+  if (typeof document === "undefined") return;
+
+  SUPPORT_WIDGET_IDS.forEach((id) => {
+    document.getElementById(id)?.remove();
+  });
+};
+
 interface ISupportWidgetProps {
   username?: string;
   text?: string;
@@ -17,19 +33,7 @@ export function SupportWidget({
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const SCRIPT_ID = "myhappr-widget-script";
-
-    // Clean up any existing instances first
-    const cleanup = () => {
-      const el = document.getElementById(SCRIPT_ID);
-      if (el) el.remove();
-      ["myhappr-floating-btn", "myhappr-modal-overlay", "myhappr-widget-styles", "myhappr-widget-font"].forEach((id) => {
-        const node = document.getElementById(id);
-        if (node) node.remove();
-      });
-    };
-
-    cleanup();
+    removeSupportWidget();
 
     const isDark = theme === "dark";
     const brandColor = isDark ? "#C98A3D" : "#B8752F";
@@ -41,7 +45,7 @@ export function SupportWidget({
     const cardText = isDark ? "#F5EDE3" : "#120B07";
 
     const script = document.createElement("script");
-    script.id = SCRIPT_ID;
+    script.id = "myhappr-widget-script";
     script.src = "https://myhappr.com/widget.js";
 
     script.async = true;
@@ -60,7 +64,7 @@ export function SupportWidget({
 
     document.body.appendChild(script);
 
-    return cleanup;
+    return removeSupportWidget;
   }, [theme, username, text, title]);
 
   return null;

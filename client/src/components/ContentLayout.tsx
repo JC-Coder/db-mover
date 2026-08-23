@@ -65,6 +65,12 @@ export function ContentLayout({ children }: IContentLayoutProps) {
             >
               Stats
             </Link>
+            <Link
+              to="/privacy"
+              className="transition-colors hover:text-[var(--landing-text)]"
+            >
+              Privacy
+            </Link>
             <a
               href={`https://github.com/${REPO}`}
               target="_blank"

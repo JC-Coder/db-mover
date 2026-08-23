@@ -12,6 +12,8 @@ const getDbName = (uri: string): string => {
   }
 };
 
+import QueryStream from "pg-query-stream";
+
 export const runDownload = async (sourceUri: string, archive: archiver.Archiver) => {
   let client: Client | null = null;
 
@@ -31,14 +33,23 @@ export const runDownload = async (sourceUri: string, archive: archiver.Archiver)
     const tables = tablesResult.rows.map((row) => row.table_name);
 
     for (const tableName of tables) {
-      // Get all rows from table
-      const rowsResult = await client.query(`SELECT * FROM "${tableName}"`);
+      const query = new QueryStream(`SELECT * FROM "${tableName}"`);
+      const stream = client.query(query);
 
-      // Convert rows to JSON
-      const jsonData = JSON.stringify(rowsResult.rows, null, 2);
+      const tableStream = Readable.from(
+        (async function* () {
+          yield "[\n";
+          let isFirst = true;
+          for await (const row of stream) {
+            if (!isFirst) yield ",\n";
+            yield JSON.stringify(row);
+            isFirst = false;
+          }
+          yield "\n]";
+        })()
+      );
 
-      // Add to archive
-      archive.append(Buffer.from(jsonData), {
+      archive.append(tableStream, {
         name: `${tableName}.json`,
       });
     }
