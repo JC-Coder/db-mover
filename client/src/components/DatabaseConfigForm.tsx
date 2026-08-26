@@ -172,6 +172,7 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onSta
 	const [sourceUri, setSourceUri] = useState(() => loadDraft(dbType)?.sourceUri ?? '');
 	const [targetUri, setTargetUri] = useState(() => loadDraft(dbType)?.targetUri ?? '');
 	const [loading, setLoading] = useState(false);
+	const [verifying, setVerifying] = useState(false);
 	const [showSource, setShowSource] = useState(false);
 	const [showTarget, setShowTarget] = useState(false);
 	const [showGuide, setShowGuide] = useState(false);
@@ -257,6 +258,46 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onSta
 		setFirebaseSourceError(null); setFirebaseTargetError(null);
 		setMode('copy'); setFirebaseMode('rtdb');
 		clearDraft(dbType); setHasDraft(false);
+	};
+
+	const handleVerifyConnection = async () => {
+		if (dbType === 'firebase' && !firebaseSourceConfig) {
+			toast.error('Missing credentials', { description: 'Upload your Firebase Service Account JSON first.' });
+			return;
+		}
+
+		if (dbType === 'firebase' && firebaseMode === 'rtdb' && !validateUri(sourceUri, dbType)) {
+			toast.error('Invalid source URL', { description: 'Check your RTDB URL format.' });
+			return;
+		}
+
+		setVerifying(true);
+		try {
+			const response = await fetch('/api/migrate/verify', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					uri: sourceUri,
+					dbType,
+					credent: dbType === 'firebase' ? firebaseSourceConfig : undefined,
+					firebaseType: firebaseMode,
+				}),
+			});
+			const result = await response.json() as { success?: boolean; message?: string };
+			if (!response.ok || !result.success) {
+				trackTelemetry('connection_verification_failed', { databaseType: dbType as 'mongodb' | 'postgres' | 'mysql' | 'redis' | 'firebase' });
+				toast.error('Connection failed', { description: result.message || 'Unable to verify this connection.' });
+				return;
+			}
+
+			trackTelemetry('connection_verified', { databaseType: dbType as 'mongodb' | 'postgres' | 'mysql' | 'redis' | 'firebase' });
+			toast.success('Connection successful');
+		} catch {
+			trackTelemetry('connection_verification_failed', { databaseType: dbType as 'mongodb' | 'postgres' | 'mysql' | 'redis' | 'firebase' });
+			toast.error('Connection failed', { description: 'Unable to reach the verification service.' });
+		} finally {
+			setVerifying(false);
+		}
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -534,6 +575,14 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onSta
 					</AnimatePresence>
 
 					{/* Submit */}
+					<button
+						type="button"
+						onClick={handleVerifyConnection}
+						disabled={loading || verifying}
+						className="w-full h-13 rounded-xl border border-[var(--landing-border)] text-[var(--landing-text)] text-base font-semibold hover:border-[var(--landing-accent)] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 p-3"
+					>
+						{verifying ? <><Loader2 className="h-4 w-4 animate-spin" /> Testing connection…</> : 'Test connection'}
+					</button>
 					<button
 						type="submit"
 						disabled={loading}

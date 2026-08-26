@@ -513,10 +513,15 @@ app.get("/api/stats", async (c) => {
 
 app.post("/api/migrate/verify", async (c) => {
   const body = await c.req.json();
-  const { uri, dbType = "mongodb" } = body;
+  const { uri, dbType = "mongodb", credent, firebaseType = "rtdb" } = body;
 
-  if (!uri) {
+  const isFirestore = dbType === "firebase" && firebaseType === "firestore";
+  if (!isFirestore && !uri) {
     return c.json({ success: false, message: "Missing URI" }, 400);
+  }
+
+  if (dbType === "firebase" && !credent) {
+    return c.json({ success: false, message: "Missing Firebase credentials" }, 400);
   }
 
   // Validate URI format based on dbType
@@ -525,25 +530,28 @@ app.post("/api/migrate/verify", async (c) => {
     postgres: /^postgres(ql)?:\/\//,
     mysql: /^mysql:\/\//,
     redis: /^rediss?:\/\//,
-    firebase: /^firebase?:\/\//,
+    firebase: /^https:\/\/([a-z0-9-]+)(-default-rtdb)?\.(firebaseio\.com|firebasedatabase\.app)(\/.*)?$/i,
   };
 
   const pattern = uriPatterns[dbType as DatabaseType];
-  if (!pattern || !pattern.test(uri)) {
+  if (!isFirestore && (!pattern || !pattern.test(uri))) {
     return c.json({ success: false, message: `Invalid ${dbType} URI` }, 400);
   }
 
   try {
     const adapter = getDatabaseAdapter(dbType as DatabaseType);
-    const isValid = await adapter.verifyConnection(uri);
+    const isValid = await adapter.verifyConnection(uri, credent, firebaseType);
     return c.json({
       success: isValid,
       message: isValid ? "Connection successful" : "Connection failed",
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
     return c.json(
-      { success: false, message: `Verification failed: ${errorMessage}` },
+      {
+        success: false,
+        message: "Verification failed",
+        errorCode: classifyTelemetryError(error)
+      },
       500,
     );
   }
