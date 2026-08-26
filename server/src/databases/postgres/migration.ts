@@ -600,6 +600,16 @@ export const runCopyMigration = async (
             continue;
           }
 
+          // PostgreSQL 18+ records NOT NULL constraints as rows in pg_constraint
+          // (contype 'n'), whose definition is `NOT NULL <column>`. That is not
+          // valid `ALTER TABLE ... ADD CONSTRAINT` syntax on PostgreSQL < 18
+          // (e.g. Neon), producing "syntax error at or near NOT", and it is
+          // redundant anyway: NOT NULL is already emitted inline in the
+          // CREATE TABLE column definitions from pg_attribute.attnotnull. Skip.
+          if (constraintType === "n") {
+            continue;
+          }
+
           await targetClient.query(
             `ALTER TABLE "${tableName}" ADD CONSTRAINT ${escapedConstraintName} ${constraintDef}`
           );
