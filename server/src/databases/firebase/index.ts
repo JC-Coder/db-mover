@@ -17,11 +17,11 @@ import {
 } from "../types";
 
 export class FirebaseAdapter implements IDatabaseAdapter {
-  async verifyConnection(uri: string, credential: ServiceAccount): Promise<boolean> {
+  async verifyConnection(uri: string, credential?: ServiceAccount, type = "rtdb"): Promise<boolean> {
     if (!credential) {
       throw new Error("credentials are needed");
     }
-    return verifyConnection(uri, credential);
+    return verifyConnection(uri, credential, type);
   }
 
   async listBrowserObjects(connection: IBrowserConnection): Promise<IBrowserObject[]> {
