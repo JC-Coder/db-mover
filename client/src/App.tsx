@@ -74,6 +74,26 @@ function AppRoutes() {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (!location.hash) return;
+
+    const id = decodeURIComponent(location.hash.slice(1));
+    const scrollToTarget = () => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    // The target section may not exist on first paint (lazy route chunk still loading) or may
+    // shift after mount (e.g. testimonials resolving from an async fetch), so retry once things
+    // have settled instead of relying on the browser's one-shot scroll-to-fragment.
+    const raf = requestAnimationFrame(scrollToTarget);
+    const settleTimeout = setTimeout(scrollToTarget, 400);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(settleTimeout);
+    };
+  }, [location.pathname, location.hash]);
+
+  useEffect(() => {
     if (!isWorkspaceRoute) return;
 
     removeSupportWidget();
