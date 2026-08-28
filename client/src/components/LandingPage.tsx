@@ -372,6 +372,12 @@ export function LandingPage({ onStart }: ILandingPageProps) {
             </div>
 
             <div className="flex items-center gap-8">
+              <a
+                href="#testimonials"
+                className="text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
+              >
+                Testimonials
+              </a>
               <Link
                 to="/stats"
                 className="text-sm font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-text)]"
