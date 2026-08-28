@@ -5,19 +5,18 @@ import { TestimonialCard } from "@/components/TestimonialCard";
 import { TestimonialModal } from "@/components/TestimonialModal";
 import {
   fetchTestimonials,
-  SEED_TESTIMONIALS,
   type ITestimonial,
 } from "@/lib/testimonials";
 
 // Displays testimonials adaptively (centered grid for 1-3 items, infinite marquee for 4+ items).
 export function TestimonialsSection() {
-  const [testimonials, setTestimonials] = useState<ITestimonial[]>(SEED_TESTIMONIALS);
+  const [testimonials, setTestimonials] = useState<ITestimonial[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
     fetchTestimonials().then((data) => {
-      if (isMounted && data.length > 0) {
+      if (isMounted) {
         setTestimonials(data);
       }
     });
@@ -92,7 +91,7 @@ export function TestimonialsSection() {
           <Button
             onClick={() => setIsModalOpen(true)}
             size="sm"
-            className="mt-3 rounded-full bg-[var(--landing-accent)] text-xs text-[var(--landing-accent-text)]"
+            className="mt-3 rounded-full bg-[var(--landing-accent)] text-xs text-[var(--landing-accent-text)] hover:bg-[var(--landing-accent-hover)]"
           >
             Be the first to leave a review
           </Button>
