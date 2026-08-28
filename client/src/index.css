@@ -133,6 +133,14 @@
   .animate-logo-marquee {
     animation: logo-marquee 22s linear infinite;
   }
+
+  .animate-testimonial-marquee {
+    animation: testimonial-marquee 45s linear infinite;
+  }
+
+  .animate-testimonial-marquee-reverse {
+    animation: testimonial-marquee-reverse 50s linear infinite;
+  }
 }
 
 @keyframes logo-marquee {
@@ -142,6 +150,26 @@
 
   to {
     transform: translateX(calc(-50% - 1.5rem));
+  }
+}
+
+@keyframes testimonial-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(calc(-50% - 0.75rem));
+  }
+}
+
+@keyframes testimonial-marquee-reverse {
+  from {
+    transform: translateX(calc(-50% - 0.75rem));
+  }
+
+  to {
+    transform: translateX(0);
   }
 }
 
@@ -155,7 +183,9 @@
     transition-duration: 0.01ms !important;
   }
 
-  .animate-logo-marquee {
+  .animate-logo-marquee,
+  .animate-testimonial-marquee,
+  .animate-testimonial-marquee-reverse {
     animation: none;
   }
 }
