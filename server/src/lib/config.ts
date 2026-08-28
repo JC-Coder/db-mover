@@ -26,4 +26,5 @@ export const config = {
     presignedExpiresSeconds: parseInt(env.R2_PRESIGNED_EXPIRES_SECONDS || "7200", 10),
     downloadDirectory: env.DOWNLOAD_STORAGE_DIR || "/tmp/dbmover-downloads",
   },
+  mongodbUri: env.MONGODB_URI?.trim(),
 };

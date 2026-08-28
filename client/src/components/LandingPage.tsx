@@ -3,6 +3,7 @@ import { GitHubStarButton } from "@/components/GitHubStarButton";
 import { DatabaseBrand } from "@/components/DatabaseBrand";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Seo } from "@/components/Seo";
+import { TestimonialsSection } from "@/components/TestimonialsSection";
 import { DATABASE_BRANDS } from "@/lib/databaseBrands";
 import { useTheme } from "@/lib/theme";
 import {
@@ -324,31 +325,7 @@ export function LandingPage({ onStart }: ILandingPageProps) {
       </section>
 
       {/* Social proof */}
-      <section className="px-6 py-16">
-        <div className="mx-auto max-w-5xl">
-          <SectionTitle title="What developers are saying" />
-          <p className="mx-auto mt-5 max-w-3xl text-center text-[var(--landing-muted)] transition-colors duration-500">
-            Used by developers who'd rather ship features than memorize CLI flags.
-          </p>
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            <FeedbackCard
-              name="Maya Chen"
-              role="Senior Engineer @ TechFlow"
-              content="Saved us a solid 45 minutes on a staging-to-prod MongoDB copy. Pasted the URIs, watched the logs, done. I didn't touch the terminal once."
-            />
-            <FeedbackCard
-              name="Ade Okonkwo"
-              role="Fullstack Engineer"
-              content="The zip backup mode is a lifesaver before schema migrations. One click and I had a snapshot to roll back to. Exactly what I needed."
-            />
-            <FeedbackCard
-              name="Nina Patel"
-              role="Platform Lead"
-              content="I've recommended this to three teammates now. It removes all the friction from database handoffs. Clean, fast, no surprises."
-            />
-          </div>
-        </div>
-      </section>
+      <TestimonialsSection />
 
       {/* Final CTA */}
       <section className="px-6 py-24">
@@ -441,41 +418,7 @@ export function LandingPage({ onStart }: ILandingPageProps) {
   );
 }
 
-interface IFeedbackCardProps {
-  name: string;
-  role: string;
-  content: string;
-}
 
-function FeedbackCard({ name, role, content }: IFeedbackCardProps) {
-  const avatarText = name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-  return (
-    <article className="relative flex flex-col justify-between rounded-xl border border-[var(--landing-border)] bg-[var(--landing-card)] p-7 shadow-sm transition-all duration-500 hover:border-[var(--landing-border-strong)]">
-      <div>
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--landing-card-soft)] text-xs font-bold text-[var(--landing-accent)] transition-colors duration-500">
-            {avatarText}
-          </div>
-          <div className="overflow-hidden">
-            <p className="truncate text-sm font-semibold text-[var(--landing-text)] transition-colors duration-500">
-              {name}
-            </p>
-            <p className="truncate text-xs text-[var(--landing-subtle)] transition-colors duration-500">{role}</p>
-          </div>
-        </div>
-        <p className="text-sm italic leading-relaxed text-[var(--landing-muted)] transition-colors duration-500">
-          "{content}"
-        </p>
-      </div>
-    </article>
-  );
-}
 
 interface IInfoCardProps {
   icon: React.ReactNode;

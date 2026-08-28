@@ -36,6 +36,11 @@ import {
   listBrowserObjects,
   previewBrowserObject,
 } from "./services/browser";
+import {
+  getTestimonials,
+  addTestimonial,
+  type ITestimonial,
+} from "./lib/testimonialStore";
 
 // Handle unhandled rejections to prevent process crash
 process.on("unhandledRejection", (reason, promise) => {
@@ -169,31 +174,51 @@ const TELEMETRY_MAX_BODY_BYTES = 4096;
 const TELEMETRY_RATE_LIMIT = 120;
 const TELEMETRY_RATE_WINDOW_MS = 60 * 1000;
 
-const telemetryRateBuckets = new Map<string, { count: number; resetAt: number }>();
+const TESTIMONIAL_RATE_LIMIT = 5;
+const TESTIMONIAL_RATE_WINDOW_MS = 10 * 60 * 1000;
 
-const isRateLimited = (key: string): boolean => {
+type RateBucket = { count: number; resetAt: number };
+
+const telemetryRateBuckets = new Map<string, RateBucket>();
+const testimonialRateBuckets = new Map<string, RateBucket>();
+
+const isRateLimited = (
+  buckets: Map<string, RateBucket>,
+  key: string,
+  limit: number,
+  windowMs: number,
+): boolean => {
   const now = Date.now();
-  const bucket = telemetryRateBuckets.get(key);
+  const bucket = buckets.get(key);
 
   if (!bucket || bucket.resetAt <= now) {
-    telemetryRateBuckets.set(key, { count: 1, resetAt: now + TELEMETRY_RATE_WINDOW_MS });
+    buckets.set(key, { count: 1, resetAt: now + windowMs });
     // Opportunistic sweep so the map cannot grow without bound.
-    if (telemetryRateBuckets.size > 10_000) {
-      for (const [bucketKey, value] of telemetryRateBuckets) {
-        if (value.resetAt <= now) telemetryRateBuckets.delete(bucketKey);
+    if (buckets.size > 10_000) {
+      for (const [bucketKey, value] of buckets) {
+        if (value.resetAt <= now) buckets.delete(bucketKey);
       }
     }
     return false;
   }
 
   bucket.count += 1;
-  return bucket.count > TELEMETRY_RATE_LIMIT;
+  return bucket.count > limit;
 };
 
+// x-forwarded-for is client-appendable, so trust x-real-ip (set solely by the reverse proxy) first;
+// when only XFF is present, trust its last hop (the proxy's own append) rather than the spoofable first one.
 const getClientKey = (c: { req: { header: (name: string) => string | undefined } }): string => {
+  const realIp = c.req.header("x-real-ip");
+  if (realIp) return realIp.trim();
+
   const forwarded = c.req.header("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return c.req.header("x-real-ip") || "unknown";
+  if (forwarded) {
+    const hops = forwarded.split(",").map((hop) => hop.trim()).filter(Boolean);
+    if (hops.length > 0) return hops[hops.length - 1];
+  }
+
+  return "unknown";
 };
 
 /**
@@ -248,7 +273,7 @@ const sanitizeRelayedProperties = (input: unknown): Record<string, unknown> => {
 };
 
 app.post("/api/telemetry/event", async (c) => {
-  if (isRateLimited(getClientKey(c))) {
+  if (isRateLimited(telemetryRateBuckets, getClientKey(c), TELEMETRY_RATE_LIMIT, TELEMETRY_RATE_WINDOW_MS)) {
     return c.json({ accepted: false, error: "Rate limit exceeded" }, 429);
   }
 
@@ -508,6 +533,78 @@ app.get("/api/stats", async (c) => {
     console.error("Failed to query PostHog stats:", errorDetails);
     if (cachedRange) return c.json({ ...cachedRange.value, stale: true });
     return c.json(fallbackStats);
+  }
+});
+
+// ── Testimonials endpoints ──────────────────────────────────────────────────
+const TESTIMONIAL_VALID_DB_TYPES = new Set([
+  "mongodb",
+  "postgres",
+  "mysql",
+  "redis",
+  "firebase",
+  "general",
+]);
+
+// Returns the full list of community and seed testimonials.
+app.get("/api/testimonials", async (c) => {
+  const testimonials = await getTestimonials();
+  return c.json({ success: true, testimonials });
+});
+
+// Submits a new user testimonial with bot protection and input validation.
+app.post("/api/testimonials", async (c) => {
+  if (isRateLimited(testimonialRateBuckets, getClientKey(c), TESTIMONIAL_RATE_LIMIT, TESTIMONIAL_RATE_WINDOW_MS)) {
+    return c.json({ success: false, message: "Too many submissions. Please try again later." }, 429);
+  }
+
+  try {
+    const body = await c.req.json();
+
+    // Honeypot detection: bots auto-fill hidden input fields.
+    if (body.website && String(body.website).trim().length > 0) {
+      return c.json({ success: true, message: "Testimonial received." }, 201);
+    }
+
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const role = typeof body.role === "string" ? body.role.trim() : "";
+    const content = typeof body.content === "string" ? body.content.trim() : "";
+    const rating = typeof body.rating === "number" ? body.rating : 5;
+    const dbType = typeof body.dbType === "string" && TESTIMONIAL_VALID_DB_TYPES.has(body.dbType)
+      ? (body.dbType as ITestimonial["dbType"])
+      : "general";
+
+    if (!name || name.length < 2 || name.length > 50) {
+      return c.json({ success: false, message: "Name must be between 2 and 50 characters." }, 400);
+    }
+
+    if (!role || role.length < 2 || role.length > 60) {
+      return c.json({ success: false, message: "Role must be between 2 and 60 characters." }, 400);
+    }
+
+    if (!content || content.length < 10 || content.length > 500) {
+      return c.json({ success: false, message: "Review content must be between 10 and 500 characters." }, 400);
+    }
+
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return c.json({ success: false, message: "Rating must be a whole number between 1 and 5." }, 400);
+    }
+
+    const created = await addTestimonial({
+      name,
+      role,
+      content,
+      rating,
+      dbType,
+    });
+
+    return c.json({ success: true, testimonial: created }, 201);
+  } catch (error) {
+    console.error("Failed to process testimonial submission:", error);
+    if (error instanceof Error && error.message === "Testimonial storage is currently unavailable.") {
+      return c.json({ success: false, message: error.message }, 503);
+    }
+    return c.json({ success: false, message: "Invalid request payload." }, 400);
   }
 });
 
