@@ -7,7 +7,9 @@
     "start": "node dist/index.js",
     "build": "tsc",
     "seed-firebase": "tsx scripts/firebase-seed.ts",
-    "verify-firebase": "tsx scripts/firebase-verify.ts"
+    "verify-firebase": "tsx scripts/firebase-verify.ts",
+    "seed-test-dbs": "tsx scripts/seed-test-databases.ts",
+    "test-db-urls": "tsx scripts/test-connections.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1116.0",

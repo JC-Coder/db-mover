@@ -49,6 +49,17 @@ Run the application locally to ensure everything works as expected.
 npm run dev
 ```
 
+For migration work you need a real source *and* target database. `docker-compose.test.yml`
+provides a pair of every supported engine, including Firebase via the official emulators:
+
+```bash
+npm run db:up      # start the databases
+npm run db:seed    # load fixtures
+npm run db:urls    # print connection strings
+```
+
+See [TESTING.md](TESTING.md) for what the fixtures cover, Firebase setup, and troubleshooting.
+
 ### 6. Commit and Push
 
 Commit your changes with a descriptive commit message.

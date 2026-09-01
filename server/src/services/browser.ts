@@ -2,6 +2,7 @@ import {
   DatabaseType,
   IBrowserConnection,
   IBrowserObject,
+  IBrowserObjectList,
   IBrowserPreview,
   IBrowserPreviewRequest,
 } from "../databases/types";
@@ -110,7 +111,7 @@ const parsePreviewRequest = (body: Record<string, unknown>): IBrowserPreviewRequ
 };
 
 // Lists database objects without running user-authored queries.
-export const listBrowserObjects = async (body: Record<string, unknown>): Promise<IBrowserObject[]> => {
+export const listBrowserObjects = async (body: Record<string, unknown>): Promise<IBrowserObjectList> => {
   const { dbType, connection } = parseConnection(body);
   const adapter = getDatabaseAdapter(dbType);
   return adapter.listBrowserObjects(connection);

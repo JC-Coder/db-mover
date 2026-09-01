@@ -3,8 +3,18 @@ import archiver from "archiver";
 import { FirebaseMode, IInitializeApp, initializer } from "./helper";
 
 export const runDownload = async (
-  sourceUri: string, credent: ServiceAccount, type: string, archive: archiver.Archiver,
+  sourceUri: string,
+  credent: ServiceAccount,
+  type: string,
+  archive: archiver.Archiver,
+  selectedObjects?: string[],
 ) => {
+  // An unrecognised mode used to initialise neither client, and the download then
+  // returned without finalising the archive, leaving the job running forever.
+  if (type !== "rtdb" && type !== "firestore") {
+    throw new Error(`Unsupported Firebase mode "${type}". Expected "rtdb" or "firestore".`);
+  }
+
   const client = initializer({
     url: sourceUri,
     credential: credent,
@@ -14,9 +24,9 @@ export const runDownload = async (
 
   try {
     if (type === "rtdb") {
-      await downloadRealTimeDatabase(client, archive);
+      await downloadRealTimeDatabase(client, archive, selectedObjects);
     } else {
-      await downloadFirestore(client, archive);
+      await downloadFirestore(client, archive, selectedObjects);
     }
   } catch (error) {
     console.log("Error during download:", error);
@@ -31,13 +41,19 @@ export const runDownload = async (
 };
 
 const downloadRealTimeDatabase = async (
-  client: IInitializeApp, archive: archiver.Archiver,
+  client: IInitializeApp,
+  archive: archiver.Archiver,
+  selectedObjects?: string[],
 ) => {
-  if (!client || !client.database) return;
+  if (!client || !client.database) {
+    throw new Error("Realtime Database client was not initialised.");
+  }
   const dataBase = client.database;
   const rootRef = dataBase.ref("/");
+  const selectedSet = selectedObjects && selectedObjects.length > 0 ? new Set(selectedObjects) : null;
 
   let lastKey: string | null = null;
+  let exported = 0;
   const BATCH_SIZE = 500;
 
   while (true) {
@@ -49,20 +65,27 @@ const downloadRealTimeDatabase = async (
     const snapshot = await query.once("value");
     if (!snapshot.exists()) break;
 
-    let count = 0;
     snapshot.forEach((child) => {
       const key = child.key;
       const data = child.val();
       if (key) {
+        // Only advance the cursor on a real key; a null one would restart paging.
+        lastKey = key;
+        if (selectedSet && !selectedSet.has(key)) return;
         archive.append(JSON.stringify({ [key]: data }), {
           name: `${key}.json`,
         });
-        lastKey = key;
-        count++;
+        exported++;
       }
     });
 
-    if (count < BATCH_SIZE) break;
+    if (snapshot.numChildren() < BATCH_SIZE) break;
+  }
+
+  if (selectedSet && exported === 0) {
+    throw new Error(
+      "None of the selected paths exist in the source database. Re-open the selection and choose paths from this source.",
+    );
   }
 
   return await archive.finalize();
@@ -71,10 +94,14 @@ const downloadRealTimeDatabase = async (
 const FIRESTORE_DOWNLOAD_MAX_DEPTH = 10;
 
 const downloadFirestore = async (
-  client: IInitializeApp, archive: archiver.Archiver,
+  client: IInitializeApp,
+  archive: archiver.Archiver,
+  selectedObjects?: string[],
 ) => {
   const firestore = client.firestore;
-  if (!firestore) return;
+  if (!firestore) {
+    throw new Error("Firestore client was not initialised.");
+  }
 
   const downloadCollection = async (col: any, path: string, depth: number) => {
     if (depth > FIRESTORE_DOWNLOAD_MAX_DEPTH) return;
@@ -85,7 +112,7 @@ const downloadFirestore = async (
     for (const doc of snapshot.docs) {
       const docData = doc.data();
       const docPath = `${path}/${doc.id}`;
-      
+
       docs.push({
         id: doc.id,
         data: docData,
@@ -105,7 +132,17 @@ const downloadFirestore = async (
     }
   };
 
-  const rootCollections = await firestore.listCollections();
+  let rootCollections = await firestore.listCollections();
+  if (selectedObjects && selectedObjects.length > 0) {
+    const selectedSet = new Set(selectedObjects);
+    rootCollections = rootCollections.filter((col) => selectedSet.has(col.id));
+    if (rootCollections.length === 0) {
+      throw new Error(
+        "None of the selected collections exist in the source database. Re-open the selection and choose collections from this source.",
+      );
+    }
+  }
+
   for (const col of rootCollections) {
     await downloadCollection(col, col.id, 0);
   }

@@ -1,12 +1,18 @@
 import Redis from "ioredis";
 import { addLog, updateJob } from "../../lib/jobManager";
 
+const getKeyGroup = (key: string) => {
+  return key.includes(":") ? key.split(":")[0] : "ungrouped";
+};
+
 export const runDownload = async (
   jobId: string,
   sourceUri: string,
   archive: any,
+  selectedObjects?: string[],
 ) => {
   const source = new Redis(sourceUri);
+  const selectedSet = selectedObjects && selectedObjects.length > 0 ? new Set(selectedObjects) : null;
   try {
     updateJob(jobId, { status: "running", progress: 0 });
     addLog(jobId, "Connected to Redis instance");
@@ -14,6 +20,9 @@ export const runDownload = async (
     const dbsize = await source.dbsize();
     let cursor = "0";
     let processedKeys = 0;
+    // Progress is measured against the whole keyspace, so it has to count every key
+    // scanned rather than only the ones a selection kept.
+    let scannedKeys = 0;
 
     const { PassThrough } = await import("stream");
     const pt = new PassThrough();
@@ -23,7 +32,12 @@ export const runDownload = async (
     do {
       const result = await source.scan(cursor, "MATCH", "*", "COUNT", 100);
       cursor = result[0];
-      const keys = result[1];
+      let keys = result[1];
+      scannedKeys += keys.length;
+
+      if (selectedSet) {
+        keys = keys.filter((key) => selectedSet.has(getKeyGroup(key)));
+      }
 
       if (keys.length > 0) {
         const pipeline = source.pipeline();
@@ -71,12 +85,18 @@ export const runDownload = async (
 
         processedKeys += keys.length;
         const progress = Math.min(
-          Math.round((processedKeys / dbsize) * 100),
+          Math.round((scannedKeys / dbsize) * 100),
           99,
         );
         updateJob(jobId, { progress });
       }
     } while (cursor !== "0");
+
+    if (selectedSet && processedKeys === 0) {
+      throw new Error(
+        "None of the selected key groups exist in the source database. Re-open the selection and choose key groups from this source.",
+      );
+    }
 
     pt.end(); // End the stream
 

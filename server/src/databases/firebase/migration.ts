@@ -8,7 +8,13 @@ async function migrateDatabase(
   sourceDb: Database,
   targetDb: Database,
   jobId: string,
+  selectedObjects?: string[],
 ) {
+  const selectedSet = selectedObjects && selectedObjects.length > 0 ? new Set(selectedObjects) : null;
+  if (selectedSet) {
+    addLog(jobId, `Selective RTDB migration enabled (${selectedSet.size} paths selected)`);
+  }
+
   const BATCH_SIZE = 100;
   let lastKey: string | null = null;
   let total = 0;
@@ -31,8 +37,12 @@ async function migrateDatabase(
     let count = 0;
 
     snap.forEach((child: any) => {
+      // Only advance the cursor on a real key; a null one would restart paging.
+      if (child.key) lastKey = child.key;
+      if (selectedSet && !selectedSet.has(child.key)) {
+        return;
+      }
       updates[`/${child.key}`] = child.val();
-      lastKey = child.key;
       count++;
       addLog(
         jobId,
@@ -40,7 +50,9 @@ async function migrateDatabase(
       );
     });
 
-    await targetDb.ref("/").update(updates);
+    if (Object.keys(updates).length > 0) {
+      await targetDb.ref("/").update(updates);
+    }
 
     total += count;
     addLog(jobId, `Migrated batch of ${count} nodes (total: ${total})`);
@@ -51,7 +63,13 @@ async function migrateDatabase(
       },
     });
 
-    if (count < BATCH_SIZE) break;
+    if (snap.numChildren() < BATCH_SIZE) break;
+  }
+
+  if (selectedSet && total === 0) {
+    throw new Error(
+      "None of the selected paths exist in the source database. Re-open the selection and choose paths from this source.",
+    );
   }
 }
 const MAX_DEPTH = 15;
@@ -60,8 +78,19 @@ async function migrateFirestore(
   sourceFirestore: Firestore,
   targetFirestore: Firestore,
   jobId: string,
+  selectedObjects?: string[],
 ) {
-  const collections = await sourceFirestore.listCollections();
+  let collections = await sourceFirestore.listCollections();
+  if (selectedObjects && selectedObjects.length > 0) {
+    const selectedSet = new Set(selectedObjects);
+    collections = collections.filter((col) => selectedSet.has(col.id));
+    if (collections.length === 0) {
+      throw new Error(
+        "None of the selected collections exist in the source database. Re-open the selection and choose collections from this source.",
+      );
+    }
+    addLog(jobId, `Selective Firestore migration enabled (${collections.length} collections selected)`);
+  }
   let collectionCount = 0;
   const writer = targetFirestore.bulkWriter();
 
@@ -223,6 +252,7 @@ export const runCopyMigration = async (
   sourceCredent: ServiceAccount,
   targetCredent: ServiceAccount,
   type: string,
+  selectedObjects?: string[],
 ) => {
   let sourceClient: IInitializeApp | null = null;
   let targetClient: IInitializeApp | null = null;
@@ -243,7 +273,7 @@ export const runCopyMigration = async (
       sourceClient.database?.goOnline();
       const sourceDb = sourceClient.database;
       if (!sourceDb) throw new Error("DB not initialized");
-      addLog(jobId, "Connected to source."); 
+      addLog(jobId, "Connected to source.");
       addLog(jobId, "Connecting to target database...");
       targetClient = initializer({
         url: targetUri,
@@ -255,7 +285,7 @@ export const runCopyMigration = async (
       const targetDb = targetClient.database;
       if (!targetDb) throw new Error("DB not initialized");
       addLog(jobId, "Connected to target.");
-      await migrateDatabase(sourceDb, targetDb, jobId);
+      await migrateDatabase(sourceDb, targetDb, jobId, selectedObjects);
       addLog(jobId, "Migration completed successfully!");
       updateJob(jobId, { status: "completed", progress: 100 });
     } else {
@@ -279,7 +309,7 @@ export const runCopyMigration = async (
       const targetFirestore = targetClient.firestore;
       if (!targetFirestore) throw new Error("DB not initialized");
       addLog(jobId, "Connected to target.");
-      await migrateFirestore(sourceFirestore, targetFirestore, jobId);
+      await migrateFirestore(sourceFirestore, targetFirestore, jobId, selectedObjects);
       addLog(jobId, "Migration completed successfully!");
       updateJob(jobId, { status: "completed", progress: 100 });
     }

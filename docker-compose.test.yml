@@ -1,0 +1,149 @@
+# Test fixtures for db-mover: a source and a target for every supported engine, so
+# copy migrations have somewhere to migrate *to*. This does not run the app itself.
+#
+#   npm run db:up      start everything and wait until healthy
+#   npm run db:seed    load fixtures (tables, FKs, documents, key groups) into the sources
+#   npm run db:reset   wipe and re-seed
+#   npm run db:down    stop and delete the volumes
+#
+# Host ports are deliberately off-default so these never collide with a Postgres,
+# MySQL, Mongo or Redis already running on the machine.
+
+name: dbmover-test
+
+services:
+  postgres-source:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: dbmover
+      POSTGRES_PASSWORD: dbmover
+      POSTGRES_DB: source_db
+    ports:
+      - "5442:5432"
+    volumes:
+      - postgres-source-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbmover -d source_db"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  postgres-target:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: dbmover
+      POSTGRES_PASSWORD: dbmover
+      POSTGRES_DB: target_db
+    ports:
+      - "5443:5432"
+    volumes:
+      - postgres-target-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbmover -d target_db"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  mysql-source:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: dbmover
+      MYSQL_DATABASE: source_db
+    ports:
+      - "3316:3306"
+    volumes:
+      - mysql-source-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pdbmover"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mysql-target:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: dbmover
+      MYSQL_DATABASE: target_db
+    ports:
+      - "3317:3306"
+    volumes:
+      - mysql-target-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pdbmover"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mongo-source:
+    image: mongo:7
+    ports:
+      - "27027:27017"
+    volumes:
+      - mongo-source-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mongo-target:
+    image: mongo:7
+    ports:
+      - "27028:27017"
+    volumes:
+      - mongo-target-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis-source:
+    image: redis:7-alpine
+    ports:
+      - "6389:6379"
+    volumes:
+      - redis-source-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  redis-target:
+    image: redis:7-alpine
+    ports:
+      - "6390:6379"
+    volumes:
+      - redis-target-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  # Opt-in: `npm run db:up:firebase`. Kept out of the default set because it builds a
+  # JRE image, which is far slower than pulling the other four.
+  firebase-emulator:
+    profiles: ["firebase"]
+    build:
+      context: ./test/firebase
+    ports:
+      - "9009:9000"   # Realtime Database
+      - "8088:8080"   # Firestore
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8080/"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  postgres-source-data:
+  postgres-target-data:
+  mysql-source-data:
+  mysql-target-data:
+  mongo-source-data:
+  mongo-target-data:
+  redis-source-data:
+  redis-target-data:

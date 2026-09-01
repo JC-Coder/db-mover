@@ -22,6 +22,7 @@ interface IMysqlStreamableConnection {
 export const runDownload = async (
   sourceUri: string,
   archive: archiver.Archiver,
+  selectedObjects?: string[],
 ) => {
   let connection: mysql.Connection | null = null;
 
@@ -38,7 +39,17 @@ export const runDownload = async (
       await connection.query<mysql.RowDataPacket[]>("SHOW TABLES");
 
     const tableKey = `Tables_in_${sourceDbName || "database"}`;
-    const tablesList = tables.map((row) => row[tableKey] as string);
+    let tablesList = tables.map((row) => row[tableKey] as string);
+
+    if (selectedObjects && selectedObjects.length > 0) {
+      const selectedSet = new Set(selectedObjects);
+      tablesList = tablesList.filter((t) => selectedSet.has(t));
+      if (tablesList.length === 0) {
+        throw new Error(
+          "None of the selected tables exist in the source database. Re-open the selection and choose tables from this source."
+        );
+      }
+    }
 
     if (tablesList.length === 0) {
       // Create empty manifest if no tables

@@ -13,12 +13,14 @@ export interface ICopyConfig {
   sourceCredent?: IFirebaseConfig | null;
   targetCredent?: IFirebaseConfig | null;
   firebaseType?: string;
+  selectedObjects?: string[];
 }
 
 export interface IDownloadConfig {
   sourceUri: string;
   credent?: IFirebaseConfig | null;
   type?: string;
+  selectedObjects?: string[];
 }
 
 export interface IBrowseConfig {
@@ -41,6 +43,8 @@ export interface IBrowserObject {
 
 export interface IBrowserSchemaResponse {
   objects: IBrowserObject[];
+  // The source was too large to enumerate exhaustively, so the list is a sample.
+  truncated?: boolean;
 }
 
 export interface IBrowserPreview {

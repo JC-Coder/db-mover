@@ -14,6 +14,7 @@ export interface Job {
   id: string;
   type: "copy" | "download";
   dbType?: string;
+  selectedObjects?: string[];
   status: "pending" | "running" | "completed" | "failed";
   logs: string[];
   stats: IJobStats;
@@ -41,6 +42,7 @@ export interface IJobTelemetryContext {
   sessionId?: string;
   deployment?: TelemetryDeployment;
   retryCount?: number;
+  selectedObjects?: string[];
 }
 
 const jobs = new Map<string, Job>();
@@ -56,6 +58,7 @@ export const createJob = (
     id,
     type,
     dbType,
+    selectedObjects: context.selectedObjects,
     status: "pending",
     logs: [],
     stats: { collections: 0, documents: 0, tables: 0, keys: 0 },

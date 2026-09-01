@@ -1,17 +1,27 @@
 import Redis from "ioredis";
 import { addLog, updateJob } from "../../lib/jobManager";
 
+const getKeyGroup = (key: string) => {
+  return key.includes(":") ? key.split(":")[0] : "ungrouped";
+};
+
 export const runCopyMigration = async (
   jobId: string,
   sourceUri: string,
   targetUri: string,
+  selectedObjects?: string[],
 ) => {
   const source = new Redis(sourceUri);
   const target = new Redis(targetUri);
+  const selectedSet = selectedObjects && selectedObjects.length > 0 ? new Set(selectedObjects) : null;
 
   try {
     updateJob(jobId, { status: "running", progress: 0 });
     addLog(jobId, "Connected to source and target Redis instances");
+
+    if (selectedSet) {
+      addLog(jobId, `Selective migration enabled (${selectedSet.size} key groups selected)`);
+    }
 
     let cursor = "0";
     let totalKeys = 0;
@@ -22,11 +32,19 @@ export const runCopyMigration = async (
     addLog(jobId, `Estimated total keys: ${dbsize}`);
 
     let processedKeys = 0;
+    // Progress is measured against the whole keyspace, so it has to count every key
+    // scanned rather than only the ones a selection kept.
+    let scannedKeys = 0;
 
     do {
       const result = await source.scan(cursor, "MATCH", "*", "COUNT", 100);
       cursor = result[0];
-      const keys = result[1];
+      let keys = result[1];
+      scannedKeys += keys.length;
+
+      if (selectedSet) {
+        keys = keys.filter((key) => selectedSet.has(getKeyGroup(key)));
+      }
 
       if (keys.length > 0) {
         const pipeline = source.pipeline();
@@ -82,7 +100,7 @@ export const runCopyMigration = async (
 
           // Update progress and stats
           const progress = Math.min(
-            Math.round((processedKeys / dbsize) * 100),
+            Math.round((scannedKeys / dbsize) * 100),
             99,
           );
           updateJob(jobId, {
@@ -96,6 +114,15 @@ export const runCopyMigration = async (
         }
       }
     } while (cursor !== "0");
+
+    if (selectedSet && processedKeys === 0) {
+      // An explicit selection that matches nothing means the selection is stale
+      // (usually saved against a different source). Completing here would report
+      // success for a migration that moved no data at all.
+      throw new Error(
+        "None of the selected key groups exist in the source database. Re-open the selection and choose key groups from this source.",
+      );
+    }
 
     addLog(jobId, `Migration completed. Processed ${processedKeys} keys.`);
     updateJob(jobId, { status: "completed", progress: 100 });
