@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { CheckCircle2, XCircle, Loader2, Database, Layers, RotateCw, Download, HardDrive } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Database, Layers, RotateCw, Download, HardDrive, SlidersHorizontal } from "lucide-react";
 import { DatabaseBrand } from "@/components/DatabaseBrand";
 import { getDatabaseBrand } from "@/lib/databaseBrands";
 import { useTheme } from "@/lib/theme";
@@ -12,6 +12,7 @@ export interface IMigrationTerminalProps {
   status: "pending" | "running" | "completed" | "failed";
   dbType?: string;
   type?: "copy" | "download";
+  selectedObjects?: string[];
   downloadUrl?: string;
   downloadExpiry?: string;
   fileSizeBytes?: number;
@@ -46,6 +47,7 @@ export function MigrationTerminal({
   status,
   dbType,
   type = "copy",
+  selectedObjects,
   downloadUrl,
   downloadExpiry,
   fileSizeBytes,
@@ -82,9 +84,17 @@ export function MigrationTerminal({
             </div>
           )}
           <div className="min-w-0">
-            <h1 className="text-4xl font-bold text-[var(--landing-text)]">
-              {isDownload ? "Database Export" : "Migration"}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-4xl font-bold text-[var(--landing-text)]">
+                {isDownload ? "Database Export" : "Migration"}
+              </h1>
+              {selectedObjects && selectedObjects.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--landing-accent)]/15 text-[var(--landing-accent)] border border-[var(--landing-accent)]/30">
+                  <SlidersHorizontal className="h-3 w-3" />
+                  Selective ({selectedObjects.length})
+                </span>
+              )}
+            </div>
             <p className="mt-2 text-base text-[var(--landing-subtle)]">
               {status === 'pending' && (isDownload ? 'Preparing export…' : 'Starting up…')}
               {status === 'running' && (isDownload ? 'Exporting database to compressed archive. Keep this tab open.' : 'Your data is being transferred. Keep this tab open.')}

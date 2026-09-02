@@ -38,9 +38,17 @@ export interface IBrowserPreview {
 }
 
 
+export interface IBrowserObjectList {
+  objects: IBrowserObject[];
+  // Set when the source was too large to enumerate exhaustively, so the list is a
+  // sample. Selective transfer treats this list as an allow-list, and a group missing
+  // from it can never be chosen.
+  truncated?: boolean;
+}
+
 export interface IDatabaseAdapter {
   verifyConnection(uri: string, credent?: ServiceAccount, type?: string): Promise<boolean>;
-  listBrowserObjects(connection: IBrowserConnection): Promise<IBrowserObject[]>;
+  listBrowserObjects(connection: IBrowserConnection): Promise<IBrowserObjectList>;
   previewBrowserObject(
     connection: IBrowserConnection,
     request: IBrowserPreviewRequest,
@@ -49,19 +57,10 @@ export interface IDatabaseAdapter {
     jobId: string,
     sourceUri: string,
     targetUri: string,
-  ): Promise<void>;
-  runCopyMigration(
-    jobId: string,
-    sourceUri: string,
-    targetUri: string,
     sourceCredent?: ServiceAccount,
     targetCredent?: ServiceAccount,
     type?: string,
-  ): Promise<void>;
-  runDownload(
-    jobId: string,
-    sourceUri: string,
-    stream: Writable,
+    selectedObjects?: string[],
   ): Promise<void>;
   runDownload(
     jobId: string,
@@ -69,5 +68,6 @@ export interface IDatabaseAdapter {
     stream: Writable,
     credent?: ServiceAccount,
     type?: string,
+    selectedObjects?: string[],
   ): Promise<void>;
 }

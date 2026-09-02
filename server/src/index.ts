@@ -660,7 +660,7 @@ app.post("/api/browser/schema", async (c) => {
   try {
     const body = (await c.req.json()) as Record<string, unknown>;
     if (typeof body.dbType === "string") databaseType = body.dbType;
-    const objects = await listBrowserObjects(body);
+    const { objects, truncated } = await listBrowserObjects(body);
     const identity = getTelemetryIdentity(c);
 
     trackEvent({
@@ -670,11 +670,12 @@ app.post("/api/browser/schema", async (c) => {
       properties: {
         databaseType,
         objectsProcessed: objects.length,
+        truncated: Boolean(truncated),
         durationMs: Date.now() - startedAt.getTime(),
       },
     });
 
-    return c.json({ objects });
+    return c.json({ objects, truncated });
   } catch (error) {
     const identity = getTelemetryIdentity(c);
     trackEvent({
@@ -718,6 +719,9 @@ app.post("/api/browser/preview", async (c) => {
 app.post("/api/migrate/start", async (c) => {
   const body = await c.req.json();
   const { type, sourceUri, targetUri, firebaseType, sourceCredent, targetCredent, dbType = "mongodb", retryOf } = body;
+  const selectedObjects = Array.isArray(body.selectedObjects)
+    ? (body.selectedObjects.filter((item: unknown) => typeof item === "string" && item.trim().length > 0) as string[])
+    : undefined;
 
   if (type === "copy") {
     const isFirestore = dbType === "firebase" && firebaseType === "firestore";
@@ -728,6 +732,7 @@ app.post("/api/migrate/start", async (c) => {
     const job = createJob("copy", dbType as string, {
       ...getTelemetryIdentity(c),
       retryCount: typeof retryOf === "string" && retryOf ? 1 : 0,
+      selectedObjects,
     });
     const adapter = getDatabaseAdapter(dbType as DatabaseType);
 
@@ -740,6 +745,7 @@ app.post("/api/migrate/start", async (c) => {
           sourceCredent,
           targetCredent,
           firebaseType,
+          selectedObjects,
         );
       } catch (error) {
         const errorMessage = getSafeOperationError(error);
@@ -772,6 +778,7 @@ app.get("/api/migrate/:jobId/status", async (c) => {
       stats: j.stats,
       dbType: j.dbType,
       type: j.type,
+      selectedObjects: j.selectedObjects,
       downloadUrl: j.downloadUrl,
       downloadExpiry: j.downloadExpiry,
       fileSizeBytes: j.fileSizeBytes,
@@ -810,11 +817,17 @@ app.get("/api/migrate/:jobId/status", async (c) => {
 app.post("/api/download", async (c) => {
   const body = await c.req.json();
   const { sourceUri, credent, type, dbType = "mongodb" } = body;
+  const selectedObjects = Array.isArray(body.selectedObjects)
+    ? (body.selectedObjects.filter((item: unknown) => typeof item === "string" && item.trim().length > 0) as string[])
+    : undefined;
 
   const isFirestore = dbType === "firebase" && type === "firestore";
   if (!isFirestore && !sourceUri) return c.json({ error: "Missing Source URI" }, 400);
 
-  const job = createJob("download", dbType as string, getTelemetryIdentity(c));
+  const job = createJob("download", dbType as string, {
+    ...getTelemetryIdentity(c),
+    selectedObjects,
+  });
   const fileName = `dump_${Date.now()}.zip`;
   const storageKey = `${job.id}_${fileName}`;
 
@@ -838,7 +851,7 @@ app.post("/api/download", async (c) => {
       void uploadPromise.catch(() => undefined);
 
       const adapter = getDatabaseAdapter(dbType as DatabaseType);
-      await adapter.runDownload(job.id, sourceUri, passThrough, credent, type);
+      await adapter.runDownload(job.id, sourceUri, passThrough, credent, type, selectedObjects);
 
       const result = await uploadPromise;
       addLog(job.id, "Export completed and uploaded to storage.");

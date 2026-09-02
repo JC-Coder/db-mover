@@ -2,12 +2,16 @@ import Redis from "ioredis";
 import {
   IBrowserConnection,
   IBrowserObject,
+  IBrowserObjectList,
   IBrowserPreview,
   IBrowserPreviewRequest,
 } from "../types";
 
 const SCAN_COUNT = 200;
-const MAX_SCHEMA_KEYS = 1000;
+// Grouping only retains one entry per prefix, so the cost of scanning further is
+// round trips rather than memory. The list doubles as the selective-transfer
+// allow-list, where stopping early silently drops whole key groups.
+const MAX_SCHEMA_KEYS = 50000;
 const UNGROUPED = "ungrouped";
 
 const createRedisClient = (uri: string) => {
@@ -67,7 +71,7 @@ const readRedisValue = async (
 
 export const listBrowserObjects = async (
   connection: IBrowserConnection,
-): Promise<IBrowserObject[]> => {
+): Promise<IBrowserObjectList> => {
   const redis = createRedisClient(connection.sourceUri);
   const groups = new Map<string, number>();
   let cursor = "0";
@@ -85,14 +89,19 @@ export const listBrowserObjects = async (
       }
     } while (cursor !== "0" && scanned < MAX_SCHEMA_KEYS);
 
-    return Array.from(groups.entries())
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([name, count]) => ({
-        database: "Redis",
-        name,
-        type: "keyspace",
-        count,
-      }));
+    return {
+      // A cursor that has not wrapped means the budget ran out first, so groups
+      // beyond this point were never seen.
+      truncated: cursor !== "0",
+      objects: Array.from(groups.entries())
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([name, count]) => ({
+          database: "Redis",
+          name,
+          type: "keyspace",
+          count,
+        })),
+    };
   } finally {
     redis.disconnect();
   }

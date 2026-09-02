@@ -10,11 +10,13 @@ import {
 	X,
 	Copy,
 	ShieldAlert,
+	SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Uploader } from './ui/uploader';
 import { CheckBox } from './ui/checkbox';
+import { TableSelectionModal } from './TableSelectionModal';
 import { cn } from "@/lib/utils";
 import { DatabaseMode, IBrowseConfig, ICopyConfig, IDownloadConfig, IFirebaseConfig } from "@/types/browser";
 import { trackTelemetry } from "@/lib/telemetry";
@@ -53,14 +55,23 @@ const validateUri = (uri: string, dbType: string): boolean => {
 
 const DRAFT_KEY = (dbType: string) => `db_mover_draft_${dbType}`;
 
-const loadDraft = (dbType: string) => {
+interface IDraftData {
+	mode: DatabaseMode;
+	sourceUri: string;
+	targetUri: string;
+	isPartialEnabled?: boolean;
+	selectedObjects?: string[];
+	selectionSource?: string;
+}
+
+const loadDraft = (dbType: string): IDraftData | null => {
 	try {
 		const raw = sessionStorage.getItem(DRAFT_KEY(dbType));
 		return raw ? JSON.parse(raw) : null;
 	} catch { return null; }
 };
 
-const saveDraft = (dbType: string, data: { mode: DatabaseMode; sourceUri: string; targetUri: string }) => {
+const saveDraft = (dbType: string, data: IDraftData) => {
 	try { sessionStorage.setItem(DRAFT_KEY(dbType), JSON.stringify(data)); } catch { }
 };
 
@@ -171,6 +182,12 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onSta
 	const [mode, setMode] = useState<DatabaseMode>(() => loadDraft(dbType)?.mode ?? 'copy');
 	const [sourceUri, setSourceUri] = useState(() => loadDraft(dbType)?.sourceUri ?? '');
 	const [targetUri, setTargetUri] = useState(() => loadDraft(dbType)?.targetUri ?? '');
+	const [isPartialEnabled, setIsPartialEnabled] = useState<boolean>(() => loadDraft(dbType)?.isPartialEnabled ?? false);
+	const [selectedObjects, setSelectedObjects] = useState<string[]>(() => loadDraft(dbType)?.selectedObjects ?? []);
+	// Which source the selection was picked against, so a selection left over from a
+	// different database is caught on submit rather than filtering away every object.
+	const [selectionSource, setSelectionSource] = useState<string>(() => loadDraft(dbType)?.selectionSource ?? '');
+	const [showTableModal, setShowTableModal] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [verifying, setVerifying] = useState(false);
 	const [showSource, setShowSource] = useState(false);
@@ -178,7 +195,7 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onSta
 	const [showGuide, setShowGuide] = useState(false);
 	const [hasDraft, setHasDraft] = useState(() => {
 		const d = loadDraft(dbType);
-		return !!(d?.sourceUri || d?.targetUri);
+		return !!(d?.sourceUri || d?.targetUri || d?.selectedObjects?.length);
 	});
 
 	const [firebaseSourceConfig, setFirebaseSourceConfig] = useState<IFirebaseConfig | null>(null);
@@ -186,6 +203,13 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onSta
 	const [firebaseSourceError, setFirebaseSourceError] = useState<string | null>(null);
 	const [firebaseTargetError, setFirebaseTargetError] = useState<string | null>(null);
 	const [firebaseMode, setFirebaseMode] = useState<FirebaseMode>('rtdb');
+
+	// Identifies the database a selection belongs to. Firestore has no source URI, so
+	// it falls back to the service account's project.
+	const currentSelectionSource =
+		dbType === 'firebase' && firebaseMode === 'firestore'
+			? `firestore:${firebaseSourceConfig?.projectId ?? ''}`
+			: `${dbType}:${sourceUri}`;
 
 	const handleFirebaseFile = async (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
 		if (type === 'source') setFirebaseSourceError(null);
@@ -243,20 +267,21 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onSta
 	};
 
 	useEffect(() => {
-		if (sourceUri || targetUri) {
-			saveDraft(dbType, { mode, sourceUri, targetUri });
+		if (sourceUri || targetUri || isPartialEnabled || selectedObjects.length > 0) {
+			saveDraft(dbType, { mode, sourceUri, targetUri, isPartialEnabled, selectedObjects, selectionSource });
 			setHasDraft(true);
 		} else {
 			clearDraft(dbType);
 			setHasDraft(false);
 		}
-	}, [dbType, mode, sourceUri, targetUri]);
+	}, [dbType, mode, sourceUri, targetUri, isPartialEnabled, selectedObjects, selectionSource]);
 
 	const handleClearDraft = () => {
 		setSourceUri(''); setTargetUri('');
 		setFirebaseSourceConfig(null); setFirebaseTargetConfig(null);
 		setFirebaseSourceError(null); setFirebaseTargetError(null);
 		setMode('copy'); setFirebaseMode('rtdb');
+		setIsPartialEnabled(false); setSelectedObjects([]); setSelectionSource('');
 		clearDraft(dbType); setHasDraft(false);
 	};
 
@@ -316,6 +341,19 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onSta
 				}
 			}
 
+			// A selection carried over from another database would filter away every object
+			// and either fail the job or, worse, look like a deliberate subset. Make the
+			// user re-pick instead of guessing what they meant.
+			if (isPartialEnabled && selectedObjects.length > 0 && selectionSource !== currentSelectionSource) {
+				toast.error('Selection is out of date', {
+					description: 'The source changed after these items were selected. Re-open Selective Transfer and choose again.',
+				});
+				setLoading(false); return;
+			}
+
+			const effectiveSelectedObjects =
+				isPartialEnabled && selectedObjects.length > 0 ? selectedObjects : undefined;
+
 			if (mode === 'copy') {
 				if (sourceUri === targetUri && sourceUri !== '' && dbType !== 'firebase') {
 					toast.error('Same source and destination', { description: 'Source and destination URIs must be different.' });
@@ -340,13 +378,25 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onSta
 						setLoading(false); return;
 					}
 				}
-				await onStartCopy({ sourceUri, targetUri, firebaseType: firebaseMode, sourceCredent: firebaseSourceConfig, targetCredent: firebaseTargetConfig });
+				await onStartCopy({
+					sourceUri,
+					targetUri,
+					firebaseType: firebaseMode,
+					sourceCredent: firebaseSourceConfig,
+					targetCredent: firebaseTargetConfig,
+					selectedObjects: effectiveSelectedObjects,
+				});
 			} else if (mode === 'download') {
 				if (dbType === 'firebase' && !firebaseSourceConfig) {
 					toast.error('Missing credentials', { description: 'Upload your Firebase Service Account JSON.' });
 					setLoading(false); return;
 				}
-				await onStartDownload({ sourceUri, credent: firebaseSourceConfig, type: firebaseMode });
+				await onStartDownload({
+					sourceUri,
+					credent: firebaseSourceConfig,
+					type: firebaseMode,
+					selectedObjects: effectiveSelectedObjects,
+				});
 			} else if (mode === 'browse') {
 				if (dbType === 'firebase' && !firebaseSourceConfig) {
 					toast.error('Missing credentials', { description: 'Upload your Firebase Service Account JSON.' });
@@ -496,6 +546,82 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onSta
 						</div>
 					</div>
 
+					{/* Selective Transfer Toggle */}
+					{(mode === 'copy' || mode === 'download') && (
+						<div className="space-y-2 pt-1">
+							<div className="flex items-center justify-between p-3.5 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-card)]">
+								<div className="flex items-center gap-3">
+									<div className={cn(
+										"p-2 rounded-lg transition-colors",
+										isPartialEnabled
+											? "bg-[var(--landing-accent)]/15 text-[var(--landing-accent)]"
+											: "bg-[var(--landing-bg)] text-[var(--landing-subtle)]"
+									)}>
+										<SlidersHorizontal className="h-4 w-4" />
+									</div>
+									<div>
+										<p className="text-sm font-medium text-[var(--landing-text)]">
+											Selective Transfer
+										</p>
+										<p className="text-xs text-[var(--landing-subtle)]">
+											{isPartialEnabled && selectedObjects.length > 0
+												? `${selectedObjects.length} items selected for transfer`
+												: "Include or exclude specific tables / collections"}
+										</p>
+									</div>
+								</div>
+
+								<div className="flex items-center gap-2">
+									{isPartialEnabled && selectedObjects.length > 0 && (
+										<button
+											type="button"
+											onClick={() => {
+												if (!sourceUri && !(dbType === 'firebase' && firebaseSourceConfig)) {
+													toast.error("Enter source details first to inspect tables");
+													return;
+												}
+												setShowTableModal(true);
+											}}
+											className="text-xs font-semibold text-[var(--landing-accent)] hover:underline px-2 py-1"
+										>
+											Edit ({selectedObjects.length})
+										</button>
+									)}
+									<button
+										type="button"
+										role="switch"
+										aria-checked={isPartialEnabled}
+										onClick={() => {
+											if (!isPartialEnabled) {
+												if (!sourceUri && !(dbType === 'firebase' && firebaseSourceConfig)) {
+													toast.error("Enter source details first to inspect tables");
+													return;
+												}
+												// Only open the modal — toggle becomes ON only if the user applies a selection
+												setShowTableModal(true);
+											} else {
+												setIsPartialEnabled(false);
+												setSelectedObjects([]);
+												setSelectionSource('');
+											}
+										}}
+										className={cn(
+											"relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none",
+											isPartialEnabled ? "bg-[var(--landing-accent)]" : "bg-[var(--landing-border)]"
+										)}
+									>
+										<span
+											className={cn(
+												"pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out mt-0.5",
+												isPartialEnabled ? "translate-x-5" : "translate-x-0.5"
+											)}
+										/>
+									</button>
+								</div>
+							</div>
+						</div>
+					)}
+
 					{/* Target — copy mode only */}
 					<AnimatePresence>
 						{mode === 'copy' && (
@@ -591,15 +717,31 @@ export function DatabaseConfigForm({ dbType, onStartCopy, onStartDownload, onSta
 						{loading ? (
 							<><Loader2 className="h-4 w-4 animate-spin" /> Processing…</>
 						) : mode === 'copy' ? (
-							<><Play className="h-4 w-4 fill-current" /> Start migration</>
+							<><Play className="h-4 w-4 fill-current" /> {isPartialEnabled && selectedObjects.length > 0 ? `Start migration (${selectedObjects.length} selected)` : 'Start migration'}</>
 						) : mode === 'download' ? (
-							<><Download className="h-4 w-4" /> Download backup</>
+							<><Download className="h-4 w-4" /> {isPartialEnabled && selectedObjects.length > 0 ? `Download backup (${selectedObjects.length} selected)` : 'Download backup'}</>
 						) : (
 							<><Eye className="h-4 w-4" /> Open Data Browser</>
 						)}
 					</button>
 				</form>
 			</motion.div>
+
+			<TableSelectionModal
+				dbType={dbType}
+				sourceUri={sourceUri}
+				credent={firebaseSourceConfig}
+				firebaseType={firebaseMode}
+				isOpen={showTableModal}
+				initialSelected={selectedObjects}
+				onClose={() => setShowTableModal(false)}
+				onApply={(selected) => {
+					setSelectedObjects(selected);
+					setSelectionSource(currentSelectionSource);
+					setIsPartialEnabled(true);
+					toast.success(`Selected ${selected.length} items for transfer`);
+				}}
+			/>
 		</>
 	);
 }

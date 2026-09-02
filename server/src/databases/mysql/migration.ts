@@ -66,10 +66,50 @@ const createDatabaseIfNotExists = async (
   }
 };
 
+// SHOW CREATE TABLE carries the table's foreign keys, and FOREIGN_KEY_CHECKS=0 lets
+// MySQL create one that points at a table this migration never copies. The constraint
+// looks fine until the first write to the child table fails with errno 1452, so drop
+// any reference that cannot resolve inside the migrated set.
+const stripUnresolvableForeignKeys = (
+  createTableSQL: string,
+  migratedTables: Set<string>
+): { sql: string; removed: string[] } => {
+  const lines = createTableSQL.split("\n");
+  const closeIndex = lines.findIndex((line) => line.startsWith(")"));
+  if (closeIndex <= 0) return { sql: createTableSQL, removed: [] };
+
+  const removed: string[] = [];
+  const definitions = lines.slice(1, closeIndex).filter((line) => {
+    const match = line.match(
+      /^\s*CONSTRAINT\s+`([^`]+)`\s+FOREIGN KEY\s+.*?REFERENCES\s+`([^`]+)`(?:\s*\.\s*`([^`]+)`)?/i
+    );
+    if (!match) return true;
+
+    const isCrossDatabase = Boolean(match[3]);
+    const referencedTable = match[3] || match[2];
+    if (!isCrossDatabase && migratedTables.has(referencedTable)) return true;
+
+    removed.push(`${match[1]} -> ${referencedTable}`);
+    return false;
+  });
+
+  if (removed.length === 0) return { sql: createTableSQL, removed };
+
+  const body = definitions
+    .map((line) => line.replace(/,\s*$/, ""))
+    .join(",\n");
+
+  return {
+    sql: [lines[0], body, ...lines.slice(closeIndex)].join("\n"),
+    removed,
+  };
+};
+
 export const runCopyMigration = async (
   jobId: string,
   sourceUri: string,
-  targetUri: string
+  targetUri: string,
+  selectedObjects?: string[]
 ) => {
   let sourceConnection: mysql.Connection | null = null;
   let targetConnection: mysql.Connection | null = null;
@@ -141,6 +181,9 @@ export const runCopyMigration = async (
     targetConnection = await mysql.createConnection(targetUri);
     addLog(jobId, "Connected to target.");
 
+    // Disable foreign key checks on target during migration
+    await targetConnection.query("SET FOREIGN_KEY_CHECKS = 0");
+
     // Use the database
     if (sourceDbName) {
       await sourceConnection.query(`USE ${mysql.escapeId(sourceDbName)}`);
@@ -155,9 +198,26 @@ export const runCopyMigration = async (
     );
 
     const tableKey = `Tables_in_${sourceDbName || "database"}`;
-    const tablesList = tables.map((row) => row[tableKey] as string);
+    let tablesList = tables.map((row) => row[tableKey] as string);
+
+    if (selectedObjects && selectedObjects.length > 0) {
+      const selectedSet = new Set(selectedObjects);
+      tablesList = tablesList.filter((t) => selectedSet.has(t));
+      addLog(
+        jobId,
+        `Selective migration enabled (${tablesList.length} of ${tables.length} tables selected)`
+      );
+    }
 
     if (tablesList.length === 0) {
+      // An explicit selection that matches nothing means the selection is stale
+      // (usually saved against a different source). Completing here would report
+      // success for a migration that moved no data at all.
+      if (selectedObjects && selectedObjects.length > 0) {
+        throw new Error(
+          "None of the selected tables exist in the source database. Re-open the selection and choose tables from this source."
+        );
+      }
       addLog(jobId, "No tables found in source database.");
       updateJob(jobId, { status: "completed", progress: 100 });
       return;
@@ -171,6 +231,7 @@ export const runCopyMigration = async (
     let totalRowsCopied = 0;
     const totalTables = tablesList.length;
     let tablesProcessed = 0;
+    const migratedTableSet = new Set(tablesList);
 
     // Migrate each table
     for (const tableName of tablesList) {
@@ -183,6 +244,8 @@ export const runCopyMigration = async (
         >(`SHOW CREATE TABLE ${mysql.escapeId(tableName)}`);
 
         const createTableSQL = createTableRows[0]["Create Table"] as string;
+        const { sql: targetCreateSQL, removed: droppedForeignKeys } =
+          stripUnresolvableForeignKeys(createTableSQL, migratedTableSet);
 
         // Drop table if exists on target
         await targetConnection.query(
@@ -190,8 +253,15 @@ export const runCopyMigration = async (
         );
 
         // Create table on target
-        await targetConnection.query(createTableSQL);
+        await targetConnection.query(targetCreateSQL);
         addLog(jobId, `Created table structure: ${tableName}`);
+
+        for (const droppedForeignKey of droppedForeignKeys) {
+          addLog(
+            jobId,
+            `Notice: Skipping foreign key ${droppedForeignKey} on ${tableName} because the referenced table was excluded.`
+          );
+        }
 
         // Get column information for data copying
         const [columns] = await sourceConnection.query<mysql.RowDataPacket[]>(
@@ -281,6 +351,9 @@ export const runCopyMigration = async (
       }
     }
     if (targetConnection) {
+      try {
+        await targetConnection.query("SET FOREIGN_KEY_CHECKS = 1");
+      } catch { }
       try {
         await targetConnection.end();
       } catch (e) {

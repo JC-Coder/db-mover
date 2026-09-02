@@ -11,6 +11,7 @@ import archiver from "archiver";
 import {
   IBrowserConnection,
   IBrowserObject,
+  IBrowserObjectList,
   IBrowserPreview,
   IBrowserPreviewRequest,
 } from "../types";
@@ -20,8 +21,8 @@ export class MongoAdapter implements IDatabaseAdapter {
     return verifyConnection(uri);
   }
 
-  async listBrowserObjects(connection: IBrowserConnection): Promise<IBrowserObject[]> {
-    return listMongoBrowserObjects(connection);
+  async listBrowserObjects(connection: IBrowserConnection): Promise<IBrowserObjectList> {
+    return { objects: await listMongoBrowserObjects(connection) };
   }
 
   async previewBrowserObject(
@@ -34,15 +35,22 @@ export class MongoAdapter implements IDatabaseAdapter {
   async runCopyMigration(
     jobId: string,
     sourceUri: string,
-    targetUri: string
+    targetUri: string,
+    _sourceCredent?: unknown,
+    _targetCredent?: unknown,
+    _type?: string,
+    selectedObjects?: string[],
   ): Promise<void> {
-    return runCopyMigration(jobId, sourceUri, targetUri);
+    return runCopyMigration(jobId, sourceUri, targetUri, selectedObjects);
   }
 
   async runDownload(
     jobId: string,
     sourceUri: string,
-    stream: Writable
+    stream: Writable,
+    _credent?: unknown,
+    _type?: string,
+    selectedObjects?: string[],
   ): Promise<void> {
     // For MongoDB, we need to use archiver, so we create a wrapper
     // The stream parameter is actually the response stream from Hono
@@ -57,6 +65,11 @@ export class MongoAdapter implements IDatabaseAdapter {
       stream.on("error", reject);
     });
 
+    // Rejects when the sink errors, but it is only awaited on the success path: a
+    // failure raised before that point would otherwise surface as an unhandled
+    // rejection and take the process down.
+    void streamFinished.catch(() => undefined);
+
     // Handle archive errors
     archive.on("error", (err) => {
       console.error("Archive error:", err);
@@ -68,7 +81,7 @@ export class MongoAdapter implements IDatabaseAdapter {
 
     try {
       // Run the download logic
-      await runMongoDownload(sourceUri, archive);
+      await runMongoDownload(sourceUri, archive, selectedObjects);
       // Wait for the stream to finish writing
       await streamFinished;
     } catch (error) {

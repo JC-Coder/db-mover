@@ -58,6 +58,7 @@ export function MigrationPage() {
   >("pending");
   const [dbType, setDbType] = useState<string | undefined>(undefined);
   const [jobType, setJobType] = useState<"copy" | "download">("copy");
+  const [selectedObjects, setSelectedObjects] = useState<string[] | undefined>(undefined);
   const [downloadUrl, setDownloadUrl] = useState<string | undefined>(undefined);
   const [downloadExpiry, setDownloadExpiry] = useState<string | undefined>(undefined);
   const [fileSizeBytes, setFileSizeBytes] = useState<number | undefined>(undefined);
@@ -92,8 +93,21 @@ export function MigrationPage() {
         return;
       }
 
-      // Start new migration with same config
-      const res = await api.post("/migrate/start", { ...config, retryOf: jobId });
+      // Start new migration or download with same config.
+      // The stored `type` is the job kind; the Firebase mode is kept as `typeMode`
+      // so it does not collide with it, and must be remapped back for /download.
+      const isExport = config.type === "download";
+      const endpoint = isExport ? "/download" : "/migrate/start";
+      const payload = isExport
+        ? {
+          sourceUri: config.sourceUri,
+          credent: config.credent,
+          type: config.typeMode,
+          dbType: config.dbType,
+          selectedObjects: config.selectedObjects,
+        }
+        : { ...config, retryOf: jobId };
+      const res = await api.post(endpoint, payload);
       const newJobId = res.data.jobId;
       try {
         // Store config for new job
@@ -104,19 +118,19 @@ export function MigrationPage() {
 
       // Navigate to new migration page
       navigate(`/migration/${newJobId}`);
-      toast.success("Migration restarted", {
+      toast.success(isExport ? "Export restarted" : "Migration restarted", {
         description:
-          "Your migration has been restarted with the same configuration.",
+          "Your operation has been restarted with the same configuration.",
       });
     } catch (err: unknown) {
       console.error(err);
       const msg =
         typeof err === "object" &&
-        err !== null &&
-        "response" in err &&
-        typeof (err as { response?: { data?: { error?: string } } }).response?.data?.error === "string"
+          err !== null &&
+          "response" in err &&
+          typeof (err as { response?: { data?: { error?: string } } }).response?.data?.error === "string"
           ? (err as { response: { data: { error: string } } }).response.data.error
-          : "Failed to restart migration.";
+          : "Failed to restart operation.";
       toast.error("Retry failed", { description: msg });
     }
   };
@@ -144,6 +158,7 @@ export function MigrationPage() {
         if (data.status) setStatus(data.status);
         if (data.dbType) setDbType(data.dbType);
         if (data.type) setJobType(data.type);
+        if (Array.isArray(data.selectedObjects)) setSelectedObjects(data.selectedObjects);
         if (data.downloadUrl) setDownloadUrl(data.downloadUrl);
         if (data.downloadExpiry) setDownloadExpiry(data.downloadExpiry);
         if (data.fileSizeBytes !== undefined) setFileSizeBytes(data.fileSizeBytes);
@@ -195,6 +210,7 @@ export function MigrationPage() {
         status={status}
         dbType={dbType}
         type={jobType}
+        selectedObjects={selectedObjects}
         downloadUrl={downloadUrl}
         downloadExpiry={downloadExpiry}
         fileSizeBytes={fileSizeBytes}

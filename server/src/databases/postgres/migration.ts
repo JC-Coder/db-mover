@@ -143,7 +143,8 @@ const ensureSequenceExists = async (
 export const runCopyMigration = async (
   jobId: string,
   sourceUri: string,
-  targetUri: string
+  targetUri: string,
+  selectedObjects?: string[]
 ) => {
   let sourceClient: Client | null = null;
   let targetClient: Client | null = null;
@@ -206,7 +207,7 @@ export const runCopyMigration = async (
       } finally {
         try {
           await checkClient.end();
-        } catch (err) {}
+        } catch (err) { }
       }
 
       if (!targetExists) {
@@ -236,7 +237,7 @@ export const runCopyMigration = async (
             );
             try {
               await adminClient.end();
-            } catch (err) {}
+            } catch (err) { }
           }
         }
 
@@ -253,6 +254,16 @@ export const runCopyMigration = async (
     addLog(jobId, "Connecting to target database...");
     targetClient = new Client({ connectionString: targetUri });
     await targetClient.connect();
+
+    // Only public is migrated, and pg_get_constraintdef renders references unqualified
+    // whenever the source search_path covers their schema. Pinning the target's
+    // search_path keeps such a reference from binding to a same-named table in
+    // another schema here.
+    try {
+      await targetClient.query("SET search_path TO public");
+    } catch (e) {
+      console.warn("Could not set search_path on target:", e);
+    }
     addLog(jobId, "Connected to target.");
 
     // Migrate custom types (ENUMs) before creating tables
@@ -353,9 +364,26 @@ export const runCopyMigration = async (
       ORDER BY table_name
     `);
 
-    const tables = tablesResult.rows.map((row) => row.table_name);
+    let tables = tablesResult.rows.map((row) => row.table_name as string);
+
+    if (selectedObjects && selectedObjects.length > 0) {
+      const selectedSet = new Set(selectedObjects);
+      tables = tables.filter((t) => selectedSet.has(t));
+      addLog(
+        jobId,
+        `Selective migration enabled (${tables.length} of ${tablesResult.rows.length} tables selected)`
+      );
+    }
 
     if (tables.length === 0) {
+      // An explicit selection that matches nothing means the selection is stale
+      // (usually saved against a different source). Completing here would report
+      // success for a migration that moved no data at all.
+      if (selectedObjects && selectedObjects.length > 0) {
+        throw new Error(
+          "None of the selected tables exist in the source database. Re-open the selection and choose tables from this source."
+        );
+      }
       addLog(jobId, "No tables found in source database.");
       updateJob(jobId, { status: "completed", progress: 100 });
       return;
@@ -374,12 +402,63 @@ export const runCopyMigration = async (
       tableName: string;
       constraintName: string;
       constraintDef: string;
+      // Identity of the referenced table, read from pg_constraint.confrelid. The
+      // rendered definition omits the schema whenever search_path covers it, so it
+      // cannot be parsed to decide whether the reference is inside this migration.
+      referencedSchema: string | null;
+      referencedTable: string | null;
+      // Owned by a target table outside this migration, so a restore failure is
+      // reported but must not fail the migration itself.
+      preserved?: boolean;
     }> = [];
     const migratedSequences = new Set<string>();
     const sequenceStates = new Map<
       string,
       { lastValue: unknown; isCalled: boolean }
     >();
+
+    // Each table is recreated with DROP ... CASCADE, which also drops foreign keys
+    // owned by target tables outside this migration. Capture them up front so they
+    // can be restored afterwards instead of silently disappearing.
+    const inboundForeignKeys = await targetClient.query(
+      `
+      SELECT
+        con.conname AS constraint_name,
+        rel.relname AS table_name,
+        pg_get_constraintdef(con.oid, true) AS constraint_def,
+        refnsp.nspname AS referenced_schema,
+        ref.relname AS referenced_table
+      FROM pg_constraint con
+      JOIN pg_class rel ON rel.oid = con.conrelid
+      JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+      JOIN pg_class ref ON ref.oid = con.confrelid
+      JOIN pg_namespace refnsp ON refnsp.oid = ref.relnamespace
+      WHERE con.contype = 'f'
+        AND nsp.nspname = 'public'
+        AND refnsp.nspname = 'public'
+        AND ref.relname::text = ANY($1::text[])
+        AND rel.relname::text <> ALL($1::text[])
+    `,
+      [tables]
+    );
+
+    for (const row of inboundForeignKeys.rows) {
+      deferredForeignKeys.push({
+        tableName: row.table_name as string,
+        constraintName: row.constraint_name as string,
+        constraintDef: row.constraint_def as string,
+        referencedSchema: row.referenced_schema as string,
+        referencedTable: row.referenced_table as string,
+        preserved: true,
+      });
+    }
+
+    if (inboundForeignKeys.rows.length > 0) {
+      addLog(
+        jobId,
+        `Preserving ${inboundForeignKeys.rows.length} foreign key(s) on target tables outside this migration.`
+      );
+    }
 
     // Migrate each table
     for (const tableName of tables) {
@@ -413,12 +492,16 @@ export const runCopyMigration = async (
         const constraintsInfo = await sourceClient.query(
           `
           SELECT
-            conname AS constraint_name,
-            contype AS constraint_type,
-            pg_get_constraintdef(oid, true) AS constraint_def
-          FROM pg_constraint
-          WHERE conrelid = $1::regclass
-          ORDER BY conname
+            con.conname AS constraint_name,
+            con.contype AS constraint_type,
+            pg_get_constraintdef(con.oid, true) AS constraint_def,
+            refnsp.nspname AS referenced_schema,
+            refcls.relname AS referenced_table
+          FROM pg_constraint con
+          LEFT JOIN pg_class refcls ON refcls.oid = con.confrelid
+          LEFT JOIN pg_namespace refnsp ON refnsp.oid = refcls.relnamespace
+          WHERE con.conrelid = $1::regclass
+          ORDER BY con.conname
         `,
           [tableRegclass]
         );
@@ -596,6 +679,8 @@ export const runCopyMigration = async (
               tableName,
               constraintName,
               constraintDef,
+              referencedSchema: (constraint.referenced_schema as string) ?? null,
+              referencedTable: (constraint.referenced_table as string) ?? null,
             });
             continue;
           }
@@ -666,7 +751,24 @@ export const runCopyMigration = async (
     }
 
     // Apply foreign keys only after all tables are present.
+    const migratedTableSet = new Set(tables);
     for (const fk of deferredForeignKeys) {
+      const isMigratable =
+        fk.referencedSchema === "public" &&
+        fk.referencedTable !== null &&
+        migratedTableSet.has(fk.referencedTable);
+
+      if (!isMigratable) {
+        const reference = fk.referencedTable
+          ? `${fk.referencedSchema ?? "?"}.${fk.referencedTable}`
+          : "unknown";
+        addLog(
+          jobId,
+          `Notice: Skipping foreign key ${fk.constraintName} on ${fk.tableName} because referenced table '${reference}' was excluded.`
+        );
+        continue;
+      }
+
       try {
         await targetClient.query(
           `ALTER TABLE "${fk.tableName}" ADD CONSTRAINT ${quoteIdentifier(
@@ -676,6 +778,13 @@ export const runCopyMigration = async (
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
+        if (fk.preserved) {
+          addLog(
+            jobId,
+            `Warning: could not restore pre-existing foreign key ${fk.constraintName} on ${fk.tableName}: ${errorMessage}`
+          );
+          continue;
+        }
         addLog(
           jobId,
           `Error adding foreign key ${fk.constraintName} on ${fk.tableName}: ${errorMessage}`

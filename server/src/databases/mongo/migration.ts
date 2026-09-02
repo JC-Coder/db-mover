@@ -4,7 +4,8 @@ import { addLog, updateJob } from "../../lib/jobManager";
 export const runCopyMigration = async (
   jobId: string,
   sourceUri: string,
-  targetUri: string
+  targetUri: string,
+  selectedObjects?: string[]
 ) => {
   let sourceClient: MongoClient | null = null;
   let targetClient: MongoClient | null = null;
@@ -60,6 +61,21 @@ export const runCopyMigration = async (
       )}`
     );
 
+    const selectedSet = selectedObjects && selectedObjects.length > 0 ? new Set(selectedObjects) : null;
+    if (selectedSet) {
+      addLog(
+        jobId,
+        `Selective migration enabled (${selectedSet.size} collections selected)`
+      );
+    }
+
+    // Collection names are only unique within a database, and this loop can span
+    // several, so a qualified "db.collection" entry has to match too.
+    const isSelected = (dbName: string, colName: string) =>
+      !selectedSet ||
+      selectedSet.has(`${dbName}.${colName}`) ||
+      selectedSet.has(colName);
+
     let totalDocsCopied = 0;
     let totalCollections = 0;
 
@@ -70,8 +86,17 @@ export const runCopyMigration = async (
         .listCollections()
         .toArray();
       totalCollections += collections.filter(
-        (c) => !c.name.startsWith("system.")
+        (c) => !c.name.startsWith("system.") && isSelected(dbName, c.name)
       ).length;
+    }
+
+    if (selectedSet && totalCollections === 0) {
+      // An explicit selection that matches nothing means the selection is stale
+      // (usually saved against a different source). Completing here would report
+      // success for a migration that moved no data at all.
+      throw new Error(
+        "None of the selected collections exist in the source database. Re-open the selection and choose collections from this source."
+      );
     }
 
     let collectionsProcessed = 0;
@@ -89,6 +114,7 @@ export const runCopyMigration = async (
       for (const colInfo of collections) {
         const colName = colInfo.name;
         if (colName.startsWith("system.")) continue;
+        if (!isSelected(dbName, colName)) continue;
 
         addLog(
           jobId,

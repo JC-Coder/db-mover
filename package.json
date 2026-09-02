@@ -18,7 +18,13 @@
     "start": "concurrently \"npm run start --workspace=server\" \"npm run dev --workspace=client\"",
     "dev": "concurrently \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
     "build": "npm run build --workspace=client && npm run build --workspace=server",
-    "install:all": "npm install && npm install --workspace=server && npm install --workspace=client"
+    "install:all": "npm install && npm install --workspace=server && npm install --workspace=client",
+    "db:up": "docker compose -f docker-compose.test.yml up -d --wait",
+    "db:down": "docker compose -f docker-compose.test.yml --profile firebase down -v",
+    "db:seed": "npm run seed-test-dbs --workspace=server",
+    "db:reset": "npm run db:down && npm run db:up && npm run db:seed",
+    "db:urls": "npm run test-db-urls --workspace=server",
+    "db:up:firebase": "docker compose -f docker-compose.test.yml --profile firebase up -d --wait"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

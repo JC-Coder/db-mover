@@ -14,7 +14,11 @@ const getDbName = (uri: string): string => {
 
 import QueryStream from "pg-query-stream";
 
-export const runDownload = async (sourceUri: string, archive: archiver.Archiver) => {
+export const runDownload = async (
+  sourceUri: string,
+  archive: archiver.Archiver,
+  selectedObjects?: string[]
+) => {
   let client: Client | null = null;
 
   try {
@@ -30,7 +34,16 @@ export const runDownload = async (sourceUri: string, archive: archiver.Archiver)
       ORDER BY table_name
     `);
 
-    const tables = tablesResult.rows.map((row) => row.table_name);
+    let tables = tablesResult.rows.map((row) => row.table_name as string);
+    if (selectedObjects && selectedObjects.length > 0) {
+      const selectedSet = new Set(selectedObjects);
+      tables = tables.filter((t) => selectedSet.has(t));
+      if (tables.length === 0) {
+        throw new Error(
+          "None of the selected tables exist in the source database. Re-open the selection and choose tables from this source."
+        );
+      }
+    }
 
     for (const tableName of tables) {
       const query = new QueryStream(`SELECT * FROM "${tableName}"`);

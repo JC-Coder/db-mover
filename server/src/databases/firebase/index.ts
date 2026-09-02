@@ -12,6 +12,7 @@ import { ServiceAccount } from "firebase-admin";
 import {
   IBrowserConnection,
   IBrowserObject,
+  IBrowserObjectList,
   IBrowserPreview,
   IBrowserPreviewRequest,
 } from "../types";
@@ -24,8 +25,8 @@ export class FirebaseAdapter implements IDatabaseAdapter {
     return verifyConnection(uri, credential, type);
   }
 
-  async listBrowserObjects(connection: IBrowserConnection): Promise<IBrowserObject[]> {
-    return listFirebaseBrowserObjects(connection);
+  async listBrowserObjects(connection: IBrowserConnection): Promise<IBrowserObjectList> {
+    return { objects: await listFirebaseBrowserObjects(connection) };
   }
 
   async previewBrowserObject(
@@ -42,6 +43,7 @@ export class FirebaseAdapter implements IDatabaseAdapter {
     sourceCredential?: ServiceAccount,
     targetCredential?: ServiceAccount,
     type = "rtdb",
+    selectedObjects?: string[],
   ): Promise<void> {
     if (!sourceCredential || !targetCredential) {
       throw new Error("credentials are needed");
@@ -54,6 +56,7 @@ export class FirebaseAdapter implements IDatabaseAdapter {
       sourceCredential,
       targetCredential,
       type,
+      selectedObjects,
     );
   }
 
@@ -63,6 +66,7 @@ export class FirebaseAdapter implements IDatabaseAdapter {
     stream: Writable,
     credential?: ServiceAccount,
     type = "rtdb",
+    selectedObjects?: string[],
   ): Promise<void> {
     const archive = archiver("zip", {
       zlib: { level: 1 },
@@ -73,6 +77,11 @@ export class FirebaseAdapter implements IDatabaseAdapter {
       stream.on("finish", resolve);
       stream.on("error", reject);
     });
+
+    // Rejects when the sink errors, but it is only awaited on the success path: a
+    // failure raised before that point would otherwise surface as an unhandled
+    // rejection and take the process down.
+    void streamFinished.catch(() => undefined);
 
     // Handle archive errors
     archive.on("error", (err) => {
@@ -89,7 +98,7 @@ export class FirebaseAdapter implements IDatabaseAdapter {
       }
 
       // Run the download logic
-      await runFirebaseDownload(sourceUri, credential, type, archive);
+      await runFirebaseDownload(sourceUri, credential, type, archive, selectedObjects);
       // Wait for the stream to finish writing
       await streamFinished;
     } catch (error) {

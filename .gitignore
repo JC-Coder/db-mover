@@ -47,3 +47,6 @@ client/.vite/
 local_test
 .codebase-memory/
 agent-plan/
+
+# Generated throwaway credentials for the Firebase emulator
+test/firebase/generated/
