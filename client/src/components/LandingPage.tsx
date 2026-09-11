@@ -132,11 +132,7 @@ export function LandingPage({ onStart }: ILandingPageProps) {
       {/* Hero */}
       <section className="px-6 pt-48 pb-28">
         <div className="mx-auto max-w-5xl text-center">
-          <p className="inline-flex items-center gap-2 rounded-full border border-[var(--landing-border)] bg-[var(--landing-card)] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[var(--landing-accent)] transition-colors duration-500">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--landing-accent)] transition-colors duration-500" />
-            100% Free &amp; Open Source
-          </p>
-          <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
+          <h1 className="mx-auto max-w-4xl text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
             Stop googling{" "}
             <span className="font-mono text-[var(--landing-accent)] transition-colors duration-500">pg_dump</span>{" "}
             flags.{" "}
