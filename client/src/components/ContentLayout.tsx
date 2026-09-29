@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { FootnoteSlot } from "@/components/FootnoteSlot";
 
 interface IContentLayoutProps {
   children: ReactNode;
@@ -81,6 +82,7 @@ export function ContentLayout({ children }: IContentLayoutProps) {
             </a>
           </div>
         </div>
+        <FootnoteSlot className="mx-auto mt-6 max-w-4xl" />
       </footer>
     </div>
   );

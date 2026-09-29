@@ -4,6 +4,7 @@ import { DatabaseBrand } from "@/components/DatabaseBrand";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Seo } from "@/components/Seo";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
+import { FootnoteSlot } from "@/components/FootnoteSlot";
 import { DATABASE_BRANDS } from "@/lib/databaseBrands";
 import { useTheme } from "@/lib/theme";
 import {
@@ -412,6 +413,7 @@ export function LandingPage({ onStart }: ILandingPageProps) {
               © {new Date().getFullYear()} DB Mover. MIT License.
             </p>
           </div>
+          <FootnoteSlot className="mt-8" />
         </div>
       </footer>
 

@@ -9,6 +9,7 @@ client/dist/
 client/dist-ssr/
 server/dist/
 build/
+*.tsbuildinfo
 
 # IDE files
 .vscode/
