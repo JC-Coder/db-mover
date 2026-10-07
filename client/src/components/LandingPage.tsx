@@ -54,6 +54,7 @@ export function LandingPage({ onStart }: ILandingPageProps) {
 
       {/* Floating Header */}
       <header className="fixed top-6 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-5xl -translate-x-1/2 sm:w-[calc(100%-3rem)]">
+        <FootnoteSlot placement="top" className="mb-3" />
         <nav className="flex items-center justify-between gap-3 rounded-full border border-[var(--landing-border)] bg-[var(--landing-panel)] px-3 py-3 shadow-lg backdrop-blur-md transition-colors duration-500 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <img src="/logo.svg" alt="" className="h-8 w-8 shrink-0 rounded-lg" />
@@ -413,7 +414,7 @@ export function LandingPage({ onStart }: ILandingPageProps) {
               © {new Date().getFullYear()} DB Mover. MIT License.
             </p>
           </div>
-          <FootnoteSlot className="mt-8" />
+          <FootnoteSlot placement="footer" className="mt-8" />
         </div>
       </footer>
 

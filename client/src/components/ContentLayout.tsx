@@ -13,6 +13,7 @@ const REPO = "JC-Coder/db-mover";
 export function ContentLayout({ children }: IContentLayoutProps) {
   return (
     <div className="min-h-full bg-[var(--landing-bg)] text-[var(--landing-text)] transition-colors duration-500">
+      <FootnoteSlot placement="top" />
       <header className="sticky top-0 z-50 border-b border-[var(--landing-border)] bg-[var(--landing-panel)] backdrop-blur-md transition-colors duration-500">
         <nav className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-6 py-4">
           <Link to="/" className="flex min-w-0 items-center gap-2">
@@ -82,7 +83,7 @@ export function ContentLayout({ children }: IContentLayoutProps) {
             </a>
           </div>
         </div>
-        <FootnoteSlot className="mx-auto mt-6 max-w-4xl" />
+        <FootnoteSlot placement="footer" className="mx-auto mt-6 max-w-4xl" />
       </footer>
     </div>
   );
