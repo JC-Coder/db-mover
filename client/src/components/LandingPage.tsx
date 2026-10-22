@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { GitHubStarButton } from "@/components/GitHubStarButton";
 import { DatabaseBrand } from "@/components/DatabaseBrand";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Seo } from "@/components/Seo";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
 import { FootnoteSlot } from "@/components/FootnoteSlot";
+import { openSupportWidget } from "@/components/SupportWidget";
 import { DATABASE_BRANDS } from "@/lib/databaseBrands";
 import { useTheme } from "@/lib/theme";
 import {
@@ -37,7 +37,7 @@ interface ILandingPageProps {
   onStart: () => void;
 }
 
-const REPO = "JC-Coder/db-mover";
+export const REPO = "JC-Coder/db-mover";
 const HOME_SEO = getStaticRouteSeo("/") as IPageSeo;
 const HERO_BRAND_LOOP = [...DATABASE_BRANDS, ...DATABASE_BRANDS];
 
@@ -126,6 +126,16 @@ export function LandingPage({ onStart }: ILandingPageProps) {
             <Link to="/docs" onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center rounded-xl px-4 text-sm font-medium text-[var(--landing-muted)] hover:bg-[var(--landing-card-soft)] hover:text-[var(--landing-text)]">Docs</Link>
             <Link to="/stats" onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center rounded-xl px-4 text-sm font-medium text-[var(--landing-muted)] hover:bg-[var(--landing-card-soft)] hover:text-[var(--landing-text)]">Stats</Link>
             <a href={`https://github.com/${REPO}`} target="_blank" rel="noreferrer" className="flex min-h-11 items-center rounded-xl px-4 text-sm font-medium text-[var(--landing-muted)] hover:bg-[var(--landing-card-soft)] hover:text-[var(--landing-text)]">GitHub</a>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                openSupportWidget();
+              }}
+              className="flex min-h-11 w-full items-center rounded-xl px-4 text-sm font-medium text-[var(--landing-accent)] hover:bg-[var(--landing-card-soft)]"
+            >
+              Support Project
+            </button>
           </div>
         )}
       </header>
@@ -417,8 +427,6 @@ export function LandingPage({ onStart }: ILandingPageProps) {
           <FootnoteSlot placement="footer" className="mt-8" />
         </div>
       </footer>
-
-      <GitHubStarButton repo={REPO} />
     </div>
   );
 }

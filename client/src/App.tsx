@@ -2,7 +2,8 @@ import { Suspense, lazy, useEffect, type ReactNode } from "react";
 import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AnimatePresence } from "framer-motion";
-import { LandingPage } from "@/components/LandingPage";
+import { LandingPage, REPO } from "@/components/LandingPage";
+import { GitHubStarButton } from "@/components/GitHubStarButton";
 import { DocsPage } from "@/pages/DocsPage";
 import { GuidePage } from "@/pages/GuidePage";
 import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage";
@@ -67,6 +68,7 @@ function AppRoutes() {
   const isWorkspaceRoute = ["/select", "/config/", "/migration/", "/browser/"].some(
     (path) => location.pathname === path || location.pathname.startsWith(path),
   );
+  const isLandingRoute = location.pathname === "/";
 
   useEffect(() => {
     trackAppOpenedOnce();
@@ -182,7 +184,17 @@ function AppRoutes() {
         </AnimatePresence>
       </div>
 
-      {!isWorkspaceRoute && <SupportWidget />}
+      {!isWorkspaceRoute && (
+        // The landing page's mobile menu carries the support link, so its floating stack is desktop-only.
+        <div
+          className={`fixed bottom-8 left-8 z-50 flex-col items-start gap-3 ${
+            isLandingRoute ? "hidden md:flex" : "flex"
+          }`}
+        >
+          {isLandingRoute && <GitHubStarButton repo={REPO} />}
+          <SupportWidget />
+        </div>
+      )}
       <Toaster position="bottom-right" closeButton theme={theme} />
     </div>
   );
