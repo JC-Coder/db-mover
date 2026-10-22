@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTheme } from "@/lib/theme";
 
 export const SUPPORT_WIDGET_IDS = [
@@ -17,6 +17,10 @@ export const removeSupportWidget = () => {
   });
 };
 
+export const openSupportWidget = () => {
+  document.getElementById("myhappr-floating-btn")?.click();
+};
+
 interface ISupportWidgetProps {
   username?: string;
   text?: string;
@@ -29,9 +33,11 @@ export function SupportWidget({
   title = "Support DB Mover",
 }: ISupportWidgetProps) {
   const { theme } = useTheme();
+  const slotRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    const slot = slotRef.current;
+    if (!slot) return;
 
     removeSupportWidget();
 
@@ -61,11 +67,14 @@ export function SupportWidget({
     script.setAttribute("data-font", "Inter");
     script.setAttribute("data-card-bg", cardBg);
     script.setAttribute("data-card-text", cardText);
+    // Inline mode inserts the button right after the script tag, so it lands in this slot
+    // instead of the widget's own fixed bottom-right position.
+    script.setAttribute("data-inline", "true");
 
-    document.body.appendChild(script);
+    slot.appendChild(script);
 
     return removeSupportWidget;
   }, [theme, username, text, title]);
 
-  return null;
+  return <div ref={slotRef} className="flex" />;
 }
