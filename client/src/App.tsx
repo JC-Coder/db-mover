@@ -18,6 +18,9 @@ import {
 import { ThemeProvider, useTheme } from "@/lib/theme";
 import { trackAppOpenedOnce, trackTelemetry } from "@/lib/telemetry";
 
+const MADEBY_SRC = "https://cdn.usemadeby.com/v1/embed.js";
+const MADEBY_KEY = "mb_live_94c6d80767eae9ea6cc58ebe842c9728b70d43c1db6dd732";
+
 /**
  * Content routes stay statically imported so the prerenderer emits their real markup. The app
  * surfaces below are lazy: they pull in recharts, the migration terminal, and the browser inspector,
@@ -114,6 +117,23 @@ function AppRoutes() {
 
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
+  }, [isWorkspaceRoute]);
+
+  // The badge can't be removed once drawn, so workspace routes only hide it (see index.css).
+  useEffect(() => {
+    if (isWorkspaceRoute) return;
+
+    if (!document.querySelector(`script[src="${MADEBY_SRC}"]`)) {
+      const script = document.createElement("script");
+      script.src = MADEBY_SRC;
+      script.dataset.key = MADEBY_KEY;
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+
+    const root = document.documentElement;
+    root.toggleAttribute("data-madeby", true);
+    return () => root.removeAttribute("data-madeby");
   }, [isWorkspaceRoute]);
 
   const launchApp = () => {
